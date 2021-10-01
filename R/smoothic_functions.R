@@ -1,23 +1,25 @@
-#' @title Multi-Parmaeter Smooth Information Criterion (MPR-SIC) Variable Selection
+#' @title Multi-Parameter Smooth Information Criterion (MPR-SIC) Variable Selection
 #'  Method
 #'
 #' @description Implements the normal MPR-SIC \eqn{\epsilon}-telescope method,
-#' returns coefficients and estimated standard errors (SEE).
+#' returns coefficients and estimated standard errors (SEE). Note that the
+#' function will scale the predictors to have unit variance, however, the final
+#' estimates are converted back to their original scale.
 #'
-#' @param x Input matrix (unscaled), of dimension nobs x nvars; each row is an
-#'  observation vector.
+#' @param x Input matrix (unstandardized), of dimension nobs x nvars; each row
+#' is an observation vector.
 #' @param y Response variable.
-#' @lambda Value of penalty tuning parameter. Suggested values are
+#' @param lambda Value of penalty tuning parameter. Suggested values are
 #' \code{"log(n)"} and \code{"2"} for the BIC and AIC respectively. Defaults to
 #' \code{lambda ="log(n)"} for the BIC case.
 #' @param get_see Logical flag for estimation of standard errors. Defaults to
 #' \code{get_see=FALSE}.
 #' @param epsilon_1 Starting value for \eqn{\epsilon}-telescope. Defaults to 10.
 #' @param epsilon_T Final value for \eqn{\epsilon}-telescope. Defaults to
-#' \eqn{10^{-5}}.
+#' \code{1e-05}.
 #' @param steps_T Number of steps in \eqn{\epsilon}-telescope. Defaults to 100.
 #' @param zero_tol Coefficients below this value are treated as being zero.
-#' Defaults to \code{1e-8}.
+#' Defaults to \code{1e-08}.
 #' @param theta_init Starting parameter values for the optimization. Defaults
 #' to \code{theta_init="lm"}, which obtains the linear model estimates.
 #' Alternatively, a vector of unscaled starting parameter values of length
@@ -26,16 +28,16 @@
 #' @param initial_step Initial step length for step halving in Newton-Raphson
 #' algorithm. Defaults to 10.
 #' @param max_step_it Maxiumum allowable number of steps to take for step
-#' halving in Newton-Raphson algorithm. Defaults to \code{1e3}.
+#' halving in Newton-Raphson algorithm. Defaults to \code{1e+03}.
 #' @param tol Convergence tolerance for the optimization. Defaults to
-#' \code{1e-8}.
+#' \code{1e-08}.
 #' @param max_it Maximum nuber of iterations to performed before the
-#' optimization is terminated. Defaults to \code{1e4}.
+#' optimization is terminated. Defaults to \code{1e+04}.
 #'
 #' @return A list with estimates and estimated standard errors.
 #' \itemize{
-#'   \item coefficients - vector of coefficients.
-#'   \item see - vector of estimated standard errors
+#'   \item \code{coefficients} - vector of coefficients.
+#'   \item \code{see} - vector of estimated standard errors
 #'   (\code{NULL} if \code{get_see = FALSE})}
 #'
 #' @examples
@@ -49,14 +51,14 @@ smoothic_mpr <- function(x, # unscaled data of p columns, no column of 1s for in
                          lambda = "log(n)", # lambda_beta = lambda_alpha
                          get_see = FALSE, # should estimated standard errors be calculated?
                          epsilon_1 = 10,
-                         epsilon_T = 1e-5,
+                         epsilon_T = 1e-05,
                          steps_T = 100,
-                         zero_tol = 1e-8, # values less than this treated as zero
+                         zero_tol = 1e-08, # values less than this treated as zero
                          theta_init = "lm", # "lm" gets lm values or can supply vector of length (2p + 2) of UNSCALED coefficients
                          initial_step = 10,
-                         max_step_it = 1000,
-                         tol = 1e-8,
-                         max_it = 10000) {
+                         max_step_it = 1e+03,
+                         tol = 1e-08,
+                         max_it = 1e+04) {
   stopifnot(!all(x[, 1] == 1)) # make sure intercept column not included
   n <- length(y)
   p <- ncol(x) # not including intercept
@@ -131,21 +133,45 @@ smoothic_mpr <- function(x, # unscaled data of p columns, no column of 1s for in
   )
 }
 
-# * Front end function ----------------------------------------------------
+#' @title Single Parameter Smooth Information Criterion (SPR-SIC) Variable Selection
+#'  Method
+#'
+#' @description Implements the normal SPR-SIC \eqn{\epsilon}-telescope method,
+#' returns coefficients and estimated standard errors (SEE). Note that the
+#' function will scale the predictors to have unit variance, however, the final
+#' estimates are converted back to their original scale.
+#'
+#' @inheritParams smoothic_mpr
+#' @param theta_init Starting parameter values for the optimization. Defaults
+#' to \code{theta_init="lm"}, which obtains the linear model estimates.
+#' Alternatively, a vector of unscaled starting parameter values of length
+#' (nvars + 2) can be used, i.e., initial parameter values for the location
+#' parameter (including the intercept) and the variance term.
+#'
+#' @return A list with estimates and estimated standard errors.
+#' \itemize{
+#'   \item \code{coefficients} - vector of coefficients.
+#'   \item \code{see} - vector of estimated standard errors
+#'   (\code{NULL} if \code{get_see = FALSE})}
+#'
+#' @examples
+#' results_spr <- smoothic_spr(x = x, y = y, get_see = TRUE)
+#' results_spr$coefficients
+#' results_spr$see
 #' @export
 smoothic_spr <- function(x, # unscaled data of p columns, no column of 1s for intercept
                          y,
-                         get_see = FALSE,
                          lambda = "log(n)",
+                         get_see = FALSE,
                          epsilon_1 = 10,
-                         epsilon_T = 1e-5,
+                         epsilon_T = 1e-05,
                          steps_T = 100,
-                         zero_tol = 1e-8, # values less than this treated as zero
+                         zero_tol = 1e-08, # values less than this treated as zero
                          theta_init = "lm", # "lm" gets lm values or can supply vector of length (p + 2) of UNSCALED coefficients
                          initial_step = 10,
-                         max_step_it = 1000,
-                         tol = 1e-8,
-                         max_it = 10000) {
+                         max_step_it = 1e+03,
+                         tol = 1e-08,
+                         max_it = 1e+04) {
   stopifnot(!all(x[, 1] == 1)) # make sure intercept column not included
   n <- length(y)
   p <- ncol(x) # not including intercept
