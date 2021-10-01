@@ -27,6 +27,10 @@ is an observation vector.}
 
 \item{y}{Response variable.}
 
+\item{lambda}{Value of penalty tuning parameter. Suggested values are
+\code{"log(n)"} and \code{"2"} for the BIC and AIC respectively. Defaults to
+\code{lambda ="log(n)"} for the BIC case.}
+
 \item{get_see}{Logical flag for estimation of standard errors. Defaults to
 \code{get_see=FALSE}.}
 
