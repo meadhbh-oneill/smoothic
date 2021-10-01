@@ -28,43 +28,46 @@ observation vector.}
 \item{y}{Response variable.}
 
 \item{get_see}{Logical flag for estimation of standard errors. Defaults to
-FALSE.}
+\code{get_see=FALSE}.}
 
-\item{epsilon_1}{Starting value for \epsilon-telescope. Defaults to 10.}
+\item{epsilon_1}{Starting value for \eqn{\epsilon}-telescope. Defaults to 10.}
 
-\item{epsilon_T}{Final value for \epsilon-telescope. Defaults to 10^{-5}.}
+\item{epsilon_T}{Final value for \eqn{\epsilon}-telescope. Defaults to
+\eqn{10^{-5}}.}
 
-\item{steps_T}{Number of steps in \epsilon-telescope. Defaults to 100.}
+\item{steps_T}{Number of steps in \eqn{\epsilon}-telescope. Defaults to 100.}
 
-\item{zero_tol}{Coefficients below this are treated as being zero. Defaults
-to 10^{-8}}
+\item{zero_tol}{Coefficients below this value are treated as being zero.
+Defaults to \code{1e-8}.}
 
 \item{theta_init}{Starting parameter values for the optimization. Defaults
-to "lm", which obtains the linear model estimates. Alternatively, a vector
-of unscaled starting parameter values of length (2*nvars + 2) can be used.}
+to \code{theta_init="lm"}, which obtains the linear model estimates.
+Alternatively, a vector of unscaled starting parameter values of length
+(2*nvars + 2) can be used, i.e., initial parameter values for the location
+and dispersion parameters including the intercepts.}
 
 \item{initial_step}{Initial step length for step halving in Newton-Raphson
 algorithm. Defaults to 10.}
 
 \item{max_step_it}{Maxiumum allowable number of steps to take for step
-halving in Newton-Raphson algorithm. Defaults to 1000.}
+halving in Newton-Raphson algorithm. Defaults to \code{1e3}.}
 
-\item{tol}{Tolerance value for convergence of optimization. Defaults to
-10^{-8}.}
+\item{tol}{Convergence tolerance for the optimization. Defaults to
+\code{1e-8}.}
 
 \item{max_it}{Maximum nuber of iterations to performed before the
-optimization is terminated. Defaults to 10000.}
+optimization is terminated. Defaults to \code{1e4}.}
 }
 \value{
 A list with estimates and estimated standard errors.
 \itemize{
   \item coefficients - vector of coefficients.
   \item see - vector of estimated standard errors
-  (NULL if \code{get_see = FALSE})}
+  (\code{NULL} if \code{get_see = FALSE})}
 }
 \description{
-Implements the normal MPR-SIC telescope method, returns coefficients and estimated
-standard errors (SEE)
+Implements the normal MPR-SIC \eqn{\epsilon}-telescope method,
+returns coefficients and estimated standard errors (SEE).
 }
 \examples{
 results_mpr <- smoothic_mpr(x = x, y = y, get_see = TRUE)

@@ -1,36 +1,42 @@
 #' @title Multi-Parmaeter Smooth Information Criterion (MPR-SIC) Variable Selection
 #'  Method
 #'
-#' @description Implements the normal MPR-SIC telescope method, returns coefficients and estimated
-#' standard errors (SEE)
+#' @description Implements the normal MPR-SIC \eqn{\epsilon}-telescope method,
+#' returns coefficients and estimated standard errors (SEE).
 #'
 #' @param x Input matrix (unscaled), of dimension nobs x nvars; each row is an
 #'  observation vector.
 #' @param y Response variable.
+#' @lambda Value of penalty tuning parameter. Suggested values are
+#' \code{"log(n)"} and \code{"2"} for the BIC and AIC respectively. Defaults to
+#' \code{lambda ="log(n)"} for the BIC case.
 #' @param get_see Logical flag for estimation of standard errors. Defaults to
-#'  FALSE.
-#' @param epsilon_1 Starting value for \epsilon-telescope. Defaults to 10.
-#' @param epsilon_T Final value for \epsilon-telescope. Defaults to 10^{-5}.
-#' @param steps_T Number of steps in \epsilon-telescope. Defaults to 100.
-#' @param zero_tol Coefficients below this are treated as being zero. Defaults
-#' to 10^{-8}
+#' \code{get_see=FALSE}.
+#' @param epsilon_1 Starting value for \eqn{\epsilon}-telescope. Defaults to 10.
+#' @param epsilon_T Final value for \eqn{\epsilon}-telescope. Defaults to
+#' \eqn{10^{-5}}.
+#' @param steps_T Number of steps in \eqn{\epsilon}-telescope. Defaults to 100.
+#' @param zero_tol Coefficients below this value are treated as being zero.
+#' Defaults to \code{1e-8}.
 #' @param theta_init Starting parameter values for the optimization. Defaults
-#' to "lm", which obtains the linear model estimates. Alternatively, a vector
-#' of unscaled starting parameter values of length (2*nvars + 2) can be used.
+#' to \code{theta_init="lm"}, which obtains the linear model estimates.
+#' Alternatively, a vector of unscaled starting parameter values of length
+#' (2*nvars + 2) can be used, i.e., initial parameter values for the location
+#' and dispersion parameters including the intercepts.
 #' @param initial_step Initial step length for step halving in Newton-Raphson
 #' algorithm. Defaults to 10.
 #' @param max_step_it Maxiumum allowable number of steps to take for step
-#' halving in Newton-Raphson algorithm. Defaults to 1000.
-#' @param tol Tolerance value for convergence of optimization. Defaults to
-#' 10^{-8}.
+#' halving in Newton-Raphson algorithm. Defaults to \code{1e3}.
+#' @param tol Convergence tolerance for the optimization. Defaults to
+#' \code{1e-8}.
 #' @param max_it Maximum nuber of iterations to performed before the
-#' optimization is terminated. Defaults to 10000.
+#' optimization is terminated. Defaults to \code{1e4}.
 #'
 #' @return A list with estimates and estimated standard errors.
 #' \itemize{
 #'   \item coefficients - vector of coefficients.
 #'   \item see - vector of estimated standard errors
-#'   (NULL if \code{get_see = FALSE})}
+#'   (\code{NULL} if \code{get_see = FALSE})}
 #'
 #' @examples
 #' results_mpr <- smoothic_mpr(x = x, y = y, get_see = TRUE)
