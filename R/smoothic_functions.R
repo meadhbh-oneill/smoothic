@@ -1,5 +1,223 @@
-# from 20210929_nlmmpr-afunc-data-analysis_06.R ---------------------------
-# Iterative Loop -----------------------------------------------------------
+#' @title Multi-Parmaeter Smooth Information Criterion (MPR-SIC) Variable Selection
+#'  Method
+#'
+#' @description Implements the normal MPR-SIC telescope method, returns coefficients and estimated
+#' standard errors (SEE)
+#'
+#' @param x Input matrix (unscaled), of dimension nobs x nvars; each row is an
+#'  observation vector.
+#' @param y Response variable.
+#' @param get_see Logical flag for estimation of standard errors. Defaults to
+#'  FALSE.
+#' @param epsilon_1 Starting value for \epsilon-telescope. Defaults to 10.
+#' @param epsilon_T Final value for \epsilon-telescope. Defaults to 10^{-5}.
+#' @param steps_T Number of steps in \epsilon-telescope. Defaults to 100.
+#' @param zero_tol Coefficients below this are treated as being zero. Defaults
+#' to 10^{-8}
+#' @param theta_init Starting parameter values for the optimization. Defaults
+#' to "lm", which obtains the linear model estimates. Alternatively, a vector
+#' of unscaled starting parameter values of length (2*nvars + 2) can be used.
+#' @param initial_step Initial step length for step halving in Newton-Raphson
+#' algorithm. Defaults to 10.
+#' @param max_step_it Maxiumum allowable number of steps to take for step
+#' halving in Newton-Raphson algorithm. Defaults to 1000.
+#' @param tol Tolerance value for convergence of optimization. Defaults to
+#' 10^{-8}.
+#' @param max_it Maximum nuber of iterations to performed before the
+#' optimization is terminated. Defaults to 10000.
+#'
+#' @return A list with estimates and estimated standard errors.
+#' \itemize{
+#'   \item coefficients - vector of coefficients.
+#'   \item see - vector of estimated standard errors
+#'   (NULL if \code{get_see = FALSE})}
+#'
+#' @examples
+#' results_mpr <- smoothic_mpr(x = x, y = y, get_see = TRUE)
+#' results_mpr$coefficients
+#' results_mpr$see
+#' @export
+
+smoothic_mpr <- function(x, # unscaled data of p columns, no column of 1s for intercept
+                         y,
+                         lambda = "log(n)", # lambda_beta = lambda_alpha
+                         get_see = FALSE, # should estimated standard errors be calculated?
+                         epsilon_1 = 10,
+                         epsilon_T = 1e-5,
+                         steps_T = 100,
+                         zero_tol = 1e-8, # values less than this treated as zero
+                         theta_init = "lm", # "lm" gets lm values or can supply vector of length (2p + 2) of UNSCALED coefficients
+                         initial_step = 10,
+                         max_step_it = 1000,
+                         tol = 1e-8,
+                         max_it = 10000) {
+  stopifnot(!all(x[, 1] == 1)) # make sure intercept column not included
+  n <- length(y)
+  p <- ncol(x) # not including intercept
+
+  # Scale x ----
+  x_scale <- scale(x,
+    center = FALSE,
+    scale = apply(x, 2, sd)
+  )
+  x_scale <- cbind(rep(1, n), x_scale) # column of 1's for intercept
+  x_sd <- apply(x, 2, sd) # save sd for later to transform back
+
+  # Initial values ----
+  if (theta_init[1] == "lm") {
+    lm_fit <- stats::lm(y ~ x_scale[, -1]) # remove intercept column
+    lm_coef_sig <- c(
+      unname(lm_fit$coefficients),
+      log((summary(lm_fit)$sigma)^2)
+    )
+    theta_init <- c(lm_coef_sig, rep(0, p)) # vector of zeros as initial values for alpha parameters
+  } else if (theta_init[1] != "lm") { # if supplying initial values...
+    stopifnot(length(theta_init) == ((2 * p) + 2)) # should include starting value for intercept and variance term
+    theta_init <- theta_init * (c(1, x_sd, 1, x_sd)) # get scaled coefficients
+  }
+
+  # Epsilon telescope vector ----
+  eps_tele_vec <- rev(exp(seq(log(epsilon_T), log(epsilon_1), length = steps_T)))
+
+  # Telescope ----
+  tele_mat_scale <- telescope_mpr_base(
+    x = x_scale,
+    y = y,
+    theta_init = theta_init,
+    eps_tele_vec = eps_tele_vec,
+    lambda = lambda,
+    initial_step = initial_step,
+    max_step_it = max_step_it,
+    tol = tol,
+    max_it = max_it
+  )
+  theta_scale <- tele_mat_scale[steps_T, (2:((2 * p) + 3))] # extract estimates
+  theta <- as.vector(theta_scale / c(1, x_sd, 1, x_sd)) # unscale (convert back)
+  theta_final <- theta # treat some as zero
+
+  zero_pos <- which(abs(theta_final) < zero_tol)
+  theta_final[zero_pos] <- 0 # treat values less than zero_tol to zero
+
+  names_coef <- c(paste0("beta_", 0:p), paste0("alpha_", 0:p))
+  names(theta_final) <- names_coef
+  names(theta) <- names_coef
+
+  # Get standard errors ----
+  if (get_see == TRUE) {
+    info_mat_list <- information_matrices_mpr(
+      theta = theta,
+      x = as.matrix(cbind(rep(1, n), x)), # include col of 1's in raw data
+      y = y,
+      lambda = lambda,
+      epsilon = epsilon_T # final epsilon
+    )
+
+    see_vec <- get_see_func(info_mat_list) # calculate standard errors
+    see_vec[zero_pos] <- 0 # if coef treated as zero then change SEE to zero
+  } else if (get_see == FALSE) {
+    see_vec <- NULL
+  }
+
+  # Output ----
+  list(
+    "coefficients" = theta_final,
+    "see" = see_vec
+  )
+}
+
+# * Front end function ----------------------------------------------------
+#' @export
+smoothic_spr <- function(x, # unscaled data of p columns, no column of 1s for intercept
+                         y,
+                         get_see = FALSE,
+                         lambda = "log(n)",
+                         epsilon_1 = 10,
+                         epsilon_T = 1e-5,
+                         steps_T = 100,
+                         zero_tol = 1e-8, # values less than this treated as zero
+                         theta_init = "lm", # "lm" gets lm values or can supply vector of length (p + 2) of UNSCALED coefficients
+                         initial_step = 10,
+                         max_step_it = 1000,
+                         tol = 1e-8,
+                         max_it = 10000) {
+  stopifnot(!all(x[, 1] == 1)) # make sure intercept column not included
+  n <- length(y)
+  p <- ncol(x) # not including intercept
+
+  # Scale x ----
+  x_scale <- scale(x,
+    center = FALSE,
+    scale = apply(x, 2, sd)
+  )
+  x_scale <- cbind(rep(1, n), x_scale) # column of 1's for intercept
+  x_sd <- apply(x, 2, sd) # save sd for later to transform back
+
+
+  # Initial values ----
+  if (theta_init[1] == "lm") {
+    lm_fit <- stats::lm(y ~ x_scale[, -1]) # remove intercept column
+    theta_init <- c(
+      unname(lm_fit$coefficients),
+      log((summary(lm_fit)$sigma)^2)
+    )
+  } else if (theta_init[1] != "lm") { # if supplying initial values...
+    stopifnot(length(theta_init) == (p + 2)) # should include starting value for intercept and variance term
+    theta_init <- theta_init * (c(1, x_sd, 1)) # get scaled coefficients
+  }
+
+  # Epsilon telescope vector ----
+  eps_tele_vec <- rev(exp(seq(log(epsilon_T), log(epsilon_1), length = steps_T)))
+
+  # Telescope ----
+  tele_mat_scale <- telescope_spr_base(
+    x = x_scale,
+    y = y,
+    theta_init = theta_init,
+    eps_tele_vec = eps_tele_vec,
+    lambda = lambda,
+    initial_step = initial_step,
+    max_step_it = max_step_it,
+    tol = tol,
+    max_it = max_it
+  )
+  theta_scale <- tele_mat_scale[steps_T, (2:(p + 3))] # extract estimates
+  theta <- as.vector(theta_scale / c(1, x_sd, 1)) # unscale (convert back)
+  theta_final <- theta
+
+  zero_pos <- which(abs(theta_final) < zero_tol)
+  theta_final[zero_pos] <- 0 # set values less than zero_tol to zero
+
+  names_coef <- c(paste0("beta_", 0:p), "alpha_0")
+  names(theta_final) <- names_coef
+  names(theta) <- names_coef
+
+  # Get standard errors ----
+  if (get_see == TRUE) {
+    info_mat_list <- information_matrices_spr(
+      theta_incl0 = c(theta, rep(0, p)), # include 0's for alpha vector for this func
+      x = as.matrix(cbind(rep(1, n), x)), # include col of 1's in raw data
+      y = y,
+      lambda = lambda,
+      epsilon = epsilon_T # final epsilon
+    )
+
+    see_vec <- get_see_func(info_mat_list) # calculate standard errors
+    see_vec[zero_pos] <- 0 # if coef treated as zero then change SEE to zero
+  } else if (get_see == FALSE) {
+    see_vec <- NULL
+  }
+
+  # Output ----
+  list(
+    "coefficients" = theta_final,
+    "see" = see_vec
+  )
+}
+
+
+
+
+# Iterative Loop ----------------------------------------------------------
 # * For both MPR & SPR ----------------------------------------------------
 it_loop <- function(theta,
                     x,
@@ -384,8 +602,8 @@ telescope_mpr_base <- function(x,
   p <- ncol(x) - 1
   t_initial_guess <- theta_init
   t_res_mat <- matrix(NA,
-                      nrow = length(eps_tele_vec),
-                      ncol = (length(t_initial_guess) + 5)
+    nrow = length(eps_tele_vec),
+    ncol = (length(t_initial_guess) + 5)
   )
   colnames(t_res_mat) <- c(
     "epsilon",
@@ -419,95 +637,7 @@ telescope_mpr_base <- function(x,
   t_res_mat
 }
 
-# * MPR Front end function ------------------------------------------------
-#' @export
-smoothic_mpr <- function(x, # unscaled data of p columns, no column of 1s for intercept
-                              y,
-                              get_see = FALSE,
-                              lambda = "log(n)", # lambda_beta = lambda_alpha
-                              epsilon_1 = 10,
-                              epsilon_T = 1e-5,
-                              steps_T = 100,
-                              zero_tol = 1e-8, # values less than this treated as zero
-                              theta_init = "lm", # "lm" gets lm values or can supply vector of length (2p + 2) of UNSCALED coefficients
-                              initial_step = 10,
-                              max_step_it = 1000,
-                              tol = 1e-8,
-                              max_it = 10000){
 
-  stopifnot(!all(x[,1] == 1)) # make sure intercept column not included
-  n <- length(y)
-  p <- ncol(x) # not including intercept
-
-  # Scale x ----
-  x_scale <- scale(x,
-                   center = FALSE,
-                   scale = apply(x, 2, sd)
-  )
-  x_scale <- cbind(rep(1, n), x_scale) # column of 1's for intercept
-  x_sd <- apply(x, 2, sd) # save sd for later to transform back
-
-  # Initial values ----
-  if (theta_init[1] == "lm") {
-    lm_fit <- stats::lm(y ~ x_scale[, -1]) # remove intercept column
-    lm_coef_sig <- c(
-      unname(lm_fit$coefficients),
-      log((summary(lm_fit)$sigma)^2))
-    theta_init <- c(lm_coef_sig, rep(0, p)) # vector of zeros as initial values for alpha parameters
-
-  } else if (theta_init[1] != "lm") { # if supplying initial values...
-    stopifnot(length(theta_init) == ((2*p) + 2)) # should include starting value for intercept and variance term
-    theta_init <- theta_init * (c(1, x_sd, 1, x_sd)) # get scaled coefficients
-  }
-
-  # Epsilon telescope vector ----
-  eps_tele_vec <- rev(exp(seq(log(epsilon_T), log(epsilon_1), length = steps_T)))
-
-  # Telescope ----
-  tele_mat_scale <- telescope_mpr_base(x = x_scale,
-                                       y = y,
-                                       theta_init = theta_init,
-                                       eps_tele_vec = eps_tele_vec,
-                                       lambda = lambda,
-                                       initial_step = initial_step,
-                                       max_step_it = max_step_it,
-                                       tol = tol,
-                                       max_it = max_it)
-  theta_scale <- tele_mat_scale[steps_T, (2:((2* p) + 3))] # extract estimates
-  theta <- as.vector(theta_scale / c(1, x_sd, 1, x_sd)) # unscale (convert back)
-  theta_final <- theta # treat some as zero
-
-  zero_pos <- which(abs(theta_final) < zero_tol)
-  theta_final[zero_pos] <- 0 # treat values less than zero_tol to zero
-
-  names_coef <- c(paste0("beta_", 0:p), paste0("alpha_", 0:p))
-  names(theta_final) <- names_coef
-  names(theta) <- names_coef
-
-  # Get standard errors ----
-  if (get_see == TRUE) {
-    info_mat_list <- information_matrices_mpr(
-      theta = theta,
-      x = as.matrix(cbind(rep(1, n), x)), # include col of 1's in raw data
-      y = y,
-      lambda = lambda,
-      epsilon = epsilon_T # final epsilon
-    )
-
-    see_vec <- get_see_func(info_mat_list) # calculate standard errors
-    see_vec[zero_pos] <- 0 # if coef treated as zero then change SEE to zero
-  } else if (get_see == FALSE) {
-    see_vec <- NULL
-  }
-
-  # Output ----
-  list(
-    "coefficients" = theta_final,
-    "see" = see_vec,
-    "fit_scale" = tele_mat_scale,
-    "x_sd" = x_sd
-  )
-}
 
 # -------------------------------------------------------------------------
 # -------------------------------------------------------------------------
@@ -778,8 +908,8 @@ telescope_spr_base <- function(x,
   p <- ncol(x) - 1
   t_initial_guess <- theta_init
   t_res_mat <- matrix(NA,
-                      nrow = length(eps_tele_vec),
-                      ncol = (length(t_initial_guess) + 5)
+    nrow = length(eps_tele_vec),
+    ncol = (length(t_initial_guess) + 5)
   )
   colnames(t_res_mat) <- c(
     "epsilon",
@@ -817,93 +947,4 @@ telescope_spr_base <- function(x,
     )
   }
   t_res_mat
-}
-
-# * Front end function ----------------------------------------------------
-#' @export
-smoothic_spr <- function(x, # unscaled data of p columns, no column of 1s for intercept
-                              y,
-                              get_see = FALSE,
-                              lambda = "log(n)",
-                              epsilon_1 = 10,
-                              epsilon_T = 1e-5,
-                              steps_T = 100,
-                              zero_tol = 1e-8, # values less than this treated as zero
-                              theta_init = "lm", # "lm" gets lm values or can supply vector of length (p + 2) of UNSCALED coefficients
-                              initial_step = 10,
-                              max_step_it = 1000,
-                              tol = 1e-8,
-                              max_it = 10000) {
-  stopifnot(!all(x[,1] == 1)) # make sure intercept column not included
-  n <- length(y)
-  p <- ncol(x) # not including intercept
-
-  # Scale x ----
-  x_scale <- scale(x,
-                   center = FALSE,
-                   scale = apply(x, 2, sd)
-  )
-  x_scale <- cbind(rep(1, n), x_scale) # column of 1's for intercept
-  x_sd <- apply(x, 2, sd) # save sd for later to transform back
-
-
-  # Initial values ----
-  if (theta_init[1] == "lm") {
-    lm_fit <- stats::lm(y ~ x_scale[, -1]) # remove intercept column
-    theta_init <- c(
-      unname(lm_fit$coefficients),
-      log((summary(lm_fit)$sigma)^2)
-    )
-  } else if (theta_init[1] != "lm") { # if supplying initial values...
-    stopifnot(length(theta_init) == (p + 2)) # should include starting value for intercept and variance term
-    theta_init <- theta_init * (c(1, x_sd, 1)) # get scaled coefficients
-  }
-
-  # Epsilon telescope vector ----
-  eps_tele_vec <- rev(exp(seq(log(epsilon_T), log(epsilon_1), length = steps_T)))
-
-  # Telescope ----
-  tele_mat_scale <- telescope_spr_base(x = x_scale,
-                                       y = y,
-                                       theta_init = theta_init,
-                                       eps_tele_vec = eps_tele_vec,
-                                       lambda = lambda,
-                                       initial_step = initial_step,
-                                       max_step_it = max_step_it,
-                                       tol = tol,
-                                       max_it = max_it)
-  theta_scale <- tele_mat_scale[steps_T, (2:(p + 3))] # extract estimates
-  theta <- as.vector(theta_scale / c(1, x_sd, 1)) # unscale (convert back)
-  theta_final <- theta
-
-  zero_pos <- which(abs(theta_final) < zero_tol)
-  theta_final[zero_pos] <- 0 # set values less than zero_tol to zero
-
-  names_coef <- c(paste0("beta_", 0:p), "alpha_0")
-  names(theta_final) <- names_coef
-  names(theta) <- names_coef
-
-  # Get standard errors ----
-  if (get_see == TRUE) {
-    info_mat_list <- information_matrices_spr(
-      theta_incl0 = c(theta, rep(0, p)), # include 0's for alpha vector for this func
-      x = as.matrix(cbind(rep(1, n), x)), # include col of 1's in raw data
-      y = y,
-      lambda = lambda,
-      epsilon = epsilon_T # final epsilon
-    )
-
-    see_vec <- get_see_func(info_mat_list) # calculate standard errors
-    see_vec[zero_pos] <- 0 # if coef treated as zero then change SEE to zero
-  } else if (get_see == FALSE) {
-    see_vec <- NULL
-  }
-
-  # Output ----
-  list(
-    "coefficients" = theta_final,
-    "see" = see_vec,
-    "fit_scale" = tele_mat_scale,
-    "x_sd" = x_sd
-  )
 }
