@@ -21,7 +21,7 @@ A data frame with 506 rows and 9 variables:
 \source{
 These data were obtained from the \code{wooldridge} package.
 
-\url {https://CRAN.R-project.org/package=wooldridge}
+\url{https://CRAN.R-project.org/package=wooldridge}
 }
 \usage{
 bostonhouseprice
