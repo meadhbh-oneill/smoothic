@@ -6,7 +6,7 @@
 #'
 #' @format A data frame with 97 rows and 9 variables:
 #' \describe{
-#'   \item{lcavol}{log(cancer volume (\eqn{cm^{3}}))}
+#'   \item{lcavol}{log(cancer volumes (\eqn{cm^{3}}))}
 #'   \item{lweight}{log(prostate weight (g))}
 #'   \item{age}{age of the patient}
 #'   \item{lbph}{log(amount of benign prostatic hyperplasia (\eqn{cm^{2}}))}
