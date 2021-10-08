@@ -15,11 +15,12 @@ A data frame with 506 rows and 9 variables:
    \item{lnox}{log(annual average nitrogen oxide concentration (pphm))}
    \item{lproptax}{log(property tax per $1000)}
    \item{ldist}{log(weighted distances to five employment centres in the Boston region)}
-   \item{lprice}{log(median houes price ($))}
+   \item{lprice}{log(median house price ($))}
    }
 }
 \source{
 These data were obtained from the \code{wooldridge} package.
+
 \url {https://CRAN.R-project.org/package=wooldridge}
 }
 \usage{

@@ -1,7 +1,7 @@
 #' Prostate Cancer Data
 #'
 #' Data, which come from a study by Stamey et al. (1989), examining the
-#' correlation between the level #' of prostate-specific antigen (PSA) and
+#' correlation between the level of prostate-specific antigen (PSA) and
 #' various clinical measures in men who were about the receive a radical prostatectomy.
 #'
 #' @format A data frame with 97 rows and 9 variables:
@@ -45,6 +45,7 @@
 #'   }
 #'
 #' @source These data were obtained from the \code{alr4} package.
+#'
 #' \url {https://CRAN.R-project.org/package=alr4}
 #'
 #' @references
@@ -67,10 +68,11 @@
 #'    \item{lnox}{log(annual average nitrogen oxide concentration (pphm))}
 #'    \item{lproptax}{log(property tax per $1000)}
 #'    \item{ldist}{log(weighted distances to five employment centres in the Boston region)}
-#'    \item{lprice}{log(median houes price ($))}
+#'    \item{lprice}{log(median house price ($))}
 #'    }
 #'
 #' @source These data were obtained from the \code{wooldridge} package.
+#'
 #' \url {https://CRAN.R-project.org/package=wooldridge}
 #'
 #' @references
