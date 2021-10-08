@@ -44,25 +44,17 @@
 #' Information Criterion for Multi-Parameter Regression Models. arXiv:2110.02643 [stat.ME]
 #'
 #' @examples
-#' # Prostate Cancer Data
-#' x <- pcancer[, !(names_pcancer %in% c("lpsa"))]
-#' y <- pcancer$lpsa
+#' # Sniffer Data --------------------
+#' x <- sniffer[, 1:4]
+#' y <- sniffer$y
 #'
-#' # MPR Model
-#' results_mpr <- smoothic(
+#' # MPR Model ----
+#' results <- smoothic(
 #'   x = x,
 #'   y = y,
 #'   model = "mpr"
 #' )
-#' summary(results_mpr)
-#'
-#' # MPR Model
-#' results_spr <- smoothic(
-#'   x = x,
-#'   y = y,
-#'   model = "spr"
-#' )
-#' summary(results_spr)
+#' summary(results)
 #' @export
 
 smoothic <- function(x, # unscaled data of p columns, no column of 1s for intercept
@@ -325,49 +317,6 @@ it_loop <- function(theta,
     "iterations" = c(max_iteration_reached, it)
   )
 } # steps & iterations = 1st value 1: true, 0: false for max reached
-
-# Generate Data -----------------------------------------------------------
-# * Generate heteroscedastic data -----------------------------------------
-data_gen_hetero_mprx <- function(n,
-                                 beta_true,
-                                 alpha_true) { # including intercepts
-  stopifnot(length(beta_true) == length(alpha_true))
-  p <- length(beta_true) - 1
-
-  x <- cbind(
-    rep(1, n),
-    matrix(rnorm(n * p), n, p)
-  )
-  # Generate error vector
-  phi_true <- as.vector(exp(x %*% alpha_true))
-  err_vec <- rnorm(n = n, mean = 0, sd = (sqrt(phi_true)))
-
-  y <- (x %*% beta_true) + err_vec
-
-  return(list(x = x, y = y, beta_true = beta_true, alpha_true = alpha_true))
-}
-
-# * Generate homoscedastic data -------------------------------------------
-data_gen_homo_sprx <- function(n,
-                               beta_true,
-                               sigmaerr) { # sqrt(exp(alpha_true[1])) # alpha_0 = log(sigma_sq), sigmaerr = sd
-  p <- length(beta_true) - 1
-
-  x <- cbind(
-    rep(1, n),
-    matrix(rnorm(n * p), n, p)
-  )
-  err_vec <- rnorm(n, sd = sigmaerr)
-
-  y <- (x %*% beta_true) + err_vec
-
-  return(list(
-    x = x,
-    y = y,
-    beta_true = beta_true,
-    sigmaerr = sigmaerr
-  ))
-}
 
 # * Standard Errors -------------------------------------------------------
 get_see_func <- function(list_of_2_info_matrices) {

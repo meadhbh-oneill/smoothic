@@ -72,11 +72,11 @@ Note that the function will scale the predictors to have unit variance, however,
 the final estimates are converted back to their original scale.
 }
 \examples{
-# Prostate Cancer Data
+# Prostate Cancer Data --------------------
 x <- pcancer[, !(names_pcancer \%in\% c("lpsa"))]
 y <- pcancer$lpsa
 
-# MPR Model
+# MPR Model ----
 results_mpr <- smoothic(
   x = x,
   y = y,
@@ -84,7 +84,7 @@ results_mpr <- smoothic(
 )
 summary(results_mpr)
 
-# MPR Model
+# SPR Model ----
 results_spr <- smoothic(
   x = x,
   y = y,
