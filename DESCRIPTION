@@ -1,12 +1,15 @@
 Package: smoothic
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Variable Selection Using a Smooth Information Criterion for Multi-Parameter Regression Models
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Author: Meadhbh O'Neill, Kevin Burke
+Maintainer: Meadhbh O'Neill <meadhbh.oneill@ul.ie>
+Description: Implementation of the SIC \eqn{\epsilon}-telescope method, either
+    using single or multi-parameter regression. This package contains the data
+    analyses from O'Neill and Burke (2021). Variable Selection Using a Smooth
+    Information Criterion for Multi-Parameter Regression Models. arXiv:2110.02643 [stat.ME].
 License: What license is it under?
+URL:https://github.com/meadhbh-oneill/smoothic
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.2

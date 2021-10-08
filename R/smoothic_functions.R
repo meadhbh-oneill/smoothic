@@ -1,9 +1,10 @@
 #' @title Variable Selection Using a Smooth Information Criterion (SIC)
 #'
-#' @description Implements the SIC \eqn{\epsilon}-telescope method,
-#' returns coefficients and estimated standard errors (SEE). Note that the
-#' function will scale the predictors to have unit variance, however, the final
-#' estimates are converted back to their original scale.
+#' @description Implements the SIC \eqn{\epsilon}-telescope method, either using
+#' single or multi-parameter regression. Returns estimated coefficients, estimated
+#' standard errors (SEE) and the value of the penalized likelihood function.
+#' Note that the function will scale the predictors to have unit variance, however,
+#' the final estimates are converted back to their original scale.
 #'
 #' @param x Input matrix (unstandardized), of dimension nobs x nvars; each row
 #' is an observation vector.
@@ -22,20 +23,22 @@
 #' Defaults to \code{1e-08}.
 #' @param tol Convergence tolerance for the optimization. Defaults to
 #' \code{1e-08}.
-#' @param max_it Maximum nuber of iterations to performed before the
+#' @param max_it Maximum number of iterations to performed before the
 #' optimization is terminated. Defaults to \code{1e+04}.
 #' @param initial_step Initial step length for step halving in Newton-Raphson
 #' algorithm. Defaults to 10.
-#' @param max_step_it Maxiumum allowable number of steps to take for step
+#' @param max_step_it Maximum allowable number of steps to take for step
 #' halving in Newton-Raphson algorithm. Defaults to \code{1e+03}.
 #'
 #' @return A list with estimates and estimated standard errors.
 #' \itemize{
 #'   \item \code{coefficients} - vector of coefficients.
-#'   \item \code{see} - vector of estimated standard errors
-#'   (\code{NULL} if \code{get_see = FALSE})}
+#'   \item \code{see} - vector of estimated standard errors.
+#'   \item \code{model} - the matched type of model which is called.
+#'   \item \code{plike} - value of the penalized likelihood function.
+#'   }
 #'
-#' @author Meadhbh O'Neill, \email{meadhbh.oneill@@ul.ie}
+#' @author Meadhbh O'Neill
 #'
 #' @references O'Neill, M. and Burke, K. (2021) Variable Selection Using a Smooth
 #' Information Criterion for Multi-Parameter Regression Models. arXiv:2110.02643 [stat.ME]
@@ -226,10 +229,10 @@ print.smoothic <- function(x) {
 #'
 #' @return A list containing the following components:
 #' \itemize{
-#'   \item \code{model} the matched model from the \code{smoothic} object.
-#'   \item \code{coefmat} a typical coefficient matrix whose columns are the
+#'   \item \code{model} - the matched model from the \code{smoothic} object.
+#'   \item \code{coefmat} - a typical coefficient matrix whose columns are the
 #'   estimated regression coefficients, estimated standard errors (SEE) and p-values.
-#'   \item \code{plike} value of the penalized likelihood function.
+#'   \item \code{plike} - value of the penalized likelihood function.
 #'   }
 #'
 #' @author Meadhbh O'Neill, \email{meadhbh.oneill@@ul.ie}

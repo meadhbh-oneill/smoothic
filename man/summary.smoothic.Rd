@@ -13,10 +13,10 @@ of a call to \code{\link{smoothic}}.}
 \value{
 A list containing the following components:
 \itemize{
-  \item \code{model} the matched model from the \code{smoothic} object.
-  \item \code{coefmat} a typical coefficient matrix whose columns are the
+  \item \code{model} - the matched model from the \code{smoothic} object.
+  \item \code{coefmat} - a typical coefficient matrix whose columns are the
   estimated regression coefficients, estimated standard errors (SEE) and p-values.
-  \item \code{plike} value of the penalized likelihood function.
+  \item \code{plike} - value of the penalized likelihood function.
   }
 }
 \description{
@@ -28,9 +28,11 @@ x <- pcancer[, !(names_pcancer \%in\% c("lpsa"))]
 y <- pcancer$lpsa
 
 # MPR Model
-results <- smoothic(x = x,
-                    y = y,
-                    model = "mpr")
+results <- smoothic(
+  x = x,
+  y = y,
+  model = "mpr"
+)
 summary(results)
 }
 \author{
