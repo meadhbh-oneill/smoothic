@@ -15,9 +15,8 @@ A data frame with 125 rows and 5 variables:
   }
 }
 \source{
-These data were obtained from the \code{alr4} package.
-
 \url{https://CRAN.R-project.org/package=alr4}
+These data were obtained from the \code{alr4} package.
 }
 \usage{
 sniffer
