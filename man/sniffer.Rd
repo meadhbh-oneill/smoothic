@@ -5,12 +5,27 @@
 \alias{sniffer}
 \title{Sniffer Data}
 \format{
-An object of class \code{data.frame} with 125 rows and 5 columns.
+A data frame with 125 rows and 5 variables:
+\describe{
+  \item{tanktemp}{initial tank temperature (degrees F)}
+  \item{gastemp}{temperature of the dispensed gasoline (degrees F)}
+  \item{tankpres}{initial vapour pressure in the tank (psi)}
+  \item{gaspres}{vapour pressure of the dispensed gasoline (psi)}
+  \item{y}{hydrocarbons emitted (g)}
+  }
+}
+\source{
+These data were obtained from the \code{alr4} package.
+\url {https://CRAN.R-project.org/package=alr4}
 }
 \usage{
 sniffer
 }
 \description{
-Sniffer Data
+Data examining the factors that impact the amount of hydrocarbon vapour released
+when gasoline is pumped into a tank.
+}
+\references{
+Weisberg, S. (2014). Applied Linear Regression, 4th edition. Hoboken NJ: Wiley.
 }
 \keyword{datasets}
