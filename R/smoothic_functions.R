@@ -89,10 +89,10 @@ smoothic <- function(x, # unscaled data of p columns, no column of 1s for interc
   # Scale x ----
   x_scale <- scale(x,
     center = FALSE,
-    scale = apply(x, 2, sd)
+    scale = apply(x, 2, stats::sd)
   )
   x_scale <- cbind(rep(1, n), x_scale) # column of 1's for intercept
-  x_sd <- apply(x, 2, sd) # save sd for later to transform back
+  x_sd <- apply(x, 2, stats::sd) # save sd for later to transform back
 
   # Initial values ----
   lm_fit <- stats::lm(y ~ x_scale[, -1]) # remove intercept column
@@ -204,20 +204,15 @@ smoothic <- function(x, # unscaled data of p columns, no column of 1s for interc
   out
 }
 
-# print.smoothic ----------------------------------------------------------
-print.smoothic <- function(x) {
-  cat("Model:\n")
-  print(x$model)
-  cat("\nCoefficients:\n")
-  print(x$coefficients)
-}
-
 #' @title Summarising Smooth Information Criterion (SIC) Fits
+#'
+#' @aliases summary.smoothic print.summary.smoothic
 #'
 #' @description \code{summary} method class \dQuote{\code{smoothic}}
 #'
 #' @param object an object of class \dQuote{\code{smoothic}} which is the result
 #' of a call to \code{\link{smoothic}}.
+#' @param ... further arguments passed to or from other methods.
 #'
 #' @return A list containing the following components:
 #' \itemize{
@@ -227,24 +222,24 @@ print.smoothic <- function(x) {
 #'   \item \code{plike} - value of the penalized likelihood function.
 #'   }
 #'
-#' @author Meadhbh O'Neill, \email{meadhbh.oneill@@ul.ie}
+#' @author Meadhbh O'Neill
 #'
 #' @examples
-#' # Prostate Cancer Data
-#' x <- pcancer[, !(names_pcancer %in% c("lpsa"))]
-#' y <- pcancer$lpsa
+#' # Sniffer Data --------------------
+#' x <- sniffer[, 1:4]
+#' y <- sniffer$y
 #'
-#' # MPR Model
+#' # MPR Model ----
 #' results <- smoothic(
 #'   x = x,
 #'   y = y,
 #'   model = "mpr"
 #' )
 #' summary(results)
+#'
 #' @export
 
-# summary.smoothic --------------------------------------------------------
-summary.smoothic <- function(object) {
+summary.smoothic <- function(object, ...) {
   coefficients <- object$coefficients
   see <- object$see
 
@@ -254,7 +249,7 @@ summary.smoothic <- function(object) {
   see[zeropos] <- NA
 
   zval <- coefficients / see
-  pval <- 1 * pnorm(abs(zval), lower.tail = FALSE)
+  pval <- 1 * stats::pnorm(abs(zval), lower.tail = FALSE)
 
   coefmat <- cbind(
     Estimate = coefficients,
@@ -271,12 +266,20 @@ summary.smoothic <- function(object) {
   out
 }
 
-# print.summary.smoothic --------------------------------------------------
-print.summary.smoothic <- function(x) {
+# print.smoothic ----------------------------------------------------------
+print.smoothic <- function(object, ...) {
   cat("Model:\n")
-  print(x$model)
+  print(object$model)
   cat("\nCoefficients:\n")
-  printCoefmat(x$coefmat,
+  print(object$coefficients)
+}
+
+# print.summary.smoothic --------------------------------------------------
+print.summary.smoothic <- function(object, ...) {
+  cat("Model:\n")
+  print(object$model)
+  cat("\nCoefficients:\n")
+  stats::printCoefmat(object$coefmat,
     cs.ind = 1:2,
     tst.ind = 3,
     P.values = TRUE,
@@ -285,7 +288,7 @@ print.summary.smoothic <- function(x) {
     na.print = "0" # change NA to 0 for printing
   )
   cat("Penalized Likelihood:\n")
-  print(x$plike) # BIC or AIC = -2*plike
+  print(object$plike) # BIC or AIC = -2*plike
 }
 
 # Iterative Loop ----------------------------------------------------------

@@ -2,13 +2,16 @@
 % Please edit documentation in R/smoothic_functions.R
 \name{summary.smoothic}
 \alias{summary.smoothic}
+\alias{print.summary.smoothic}
 \title{Summarising Smooth Information Criterion (SIC) Fits}
 \usage{
-\method{summary}{smoothic}(object)
+\method{summary}{smoothic}(object, ...)
 }
 \arguments{
 \item{object}{an object of class \dQuote{\code{smoothic}} which is the result
 of a call to \code{\link{smoothic}}.}
+
+\item{...}{further arguments passed to or from other methods.}
 }
 \value{
 A list containing the following components:
@@ -23,18 +26,19 @@ A list containing the following components:
 \code{summary} method class \dQuote{\code{smoothic}}
 }
 \examples{
-# Prostate Cancer Data
-x <- pcancer[, !(names_pcancer \%in\% c("lpsa"))]
-y <- pcancer$lpsa
+# Sniffer Data --------------------
+x <- sniffer[, 1:4]
+y <- sniffer$y
 
-# MPR Model
+# MPR Model ----
 results <- smoothic(
   x = x,
   y = y,
   model = "mpr"
 )
 summary(results)
+
 }
 \author{
-Meadhbh O'Neill, \email{meadhbh.oneill@ul.ie}
+Meadhbh O'Neill
 }

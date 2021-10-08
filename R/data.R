@@ -10,10 +10,6 @@
 #'   \item{lweight}{log(prostate weight (g))}
 #'   \item{age}{age of the patient}
 #'   \item{lbph}{log(amount of benign prostatic hyperplasia (cm^2))}
-#'   \item{lcavol}{log(cancer volume (cm^3))}
-#'   \item{lweight}{log(prostate weight (g))}
-#'   \item{age}{age of the patient}
-#'   \item{lbph}{log(amount of benign prostatic hyperplasia (cm^2))}
 #'   \item{svi}{presence of seminal vesicle invasion (1=yes, 0=no)}
 #'   \item{lcp}{log(capsular penetration (cm))}
 #'   \item{gleason}{Gleason score}

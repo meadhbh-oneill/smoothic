@@ -72,25 +72,17 @@ Note that the function will scale the predictors to have unit variance, however,
 the final estimates are converted back to their original scale.
 }
 \examples{
-# Prostate Cancer Data --------------------
-x <- pcancer[, !(names_pcancer \%in\% c("lpsa"))]
-y <- pcancer$lpsa
+# Sniffer Data --------------------
+x <- sniffer[, 1:4]
+y <- sniffer$y
 
 # MPR Model ----
-results_mpr <- smoothic(
+results <- smoothic(
   x = x,
   y = y,
   model = "mpr"
 )
-summary(results_mpr)
-
-# SPR Model ----
-results_spr <- smoothic(
-  x = x,
-  y = y,
-  model = "spr"
-)
-summary(results_spr)
+summary(results)
 }
 \references{
 O'Neill, M. and Burke, K. (2021) Variable Selection Using a Smooth
