@@ -8,9 +8,9 @@
 #' @param x Input matrix (unstandardized), of dimension nobs x nvars; each row
 #' is an observation vector.
 #' @param y Response variable.
-#' @param method The type of regression to be implemented, either \code{method = "mpr"}
-#' for multi-parameter regression, or \code{method = "spr"} for single parameter
-#' regression (i.e., classical normal linear regression). Defaults to \code{method = "mpr"}.
+#' @param model The type of regression to be implemented, either \code{model = "mpr"}
+#' for multi-parameter regression, or \code{model = "spr"} for single parameter
+#' regression (i.e., classical normal linear regression). Defaults to \code{model = "mpr"}.
 #' @param lambda Value of penalty tuning parameter. Suggested values are
 #' \code{"log(n)"} and \code{"2"} for the BIC and AIC respectively. Defaults to
 #' \code{lambda ="log(n)"} for the BIC case.
@@ -30,10 +30,9 @@
 #' halving in Newton-Raphson algorithm. Defaults to \code{1e+03}.
 #'
 #' @return A list with estimates and estimated standard errors.
-#' \itemize{
-#'   \item \code{coefficients} - vector of coefficients.
-#'   \item \code{see} - vector of estimated standard errors
-#'   (\code{NULL} if \code{get_see = FALSE})}
+#' \describe{
+#'   \item {\code{coefficients}}{vector of coefficients.}
+#'   \item {\code{see}}{vector of estimated standard errors}
 #'
 #' @examples
 #' results_mpr <- smoothic_mpr(x = x, y = y, get_see = TRUE)
@@ -43,7 +42,7 @@
 
 smoothic <- function(x, # unscaled data of p columns, no column of 1s for intercept
                      y,
-                     method = "mpr", # either "mpr" or "spr"
+                     model = "mpr", # either "mpr" or "spr"
                      lambda = "log(n)", # lambda_beta = lambda_alpha
                      epsilon_1 = 10,
                      epsilon_T = 1e-05,
@@ -53,9 +52,22 @@ smoothic <- function(x, # unscaled data of p columns, no column of 1s for interc
                      max_it = 1e+04,
                      initial_step = 10,
                      max_step_it = 1e+03) {
-  stopifnot(!all(x[, 1] == 1)) # make sure intercept column not included
+  if (all(x[, 1] == 1)) {
+    stop("Error: Make sure column of 1's for intercept is not included in x")
+  }
+
+  if (any(is.na(x) == TRUE) | any(is.na(y) == TRUE)) {
+    stop("Error: Make sure data does not contain any NAs.")
+  }
+
   n <- length(y)
   p <- ncol(x) # not including intercept
+
+  if (is.null(colnames(x))) {
+    colnames_x <- paste0("X_", 0:p)
+  } else {
+    colnames_x <- paste0(c("intercept", colnames(x)), "_", 0:p)
+  }
 
   # Scale x ----
   x_scale <- scale(x,
@@ -77,8 +89,8 @@ smoothic <- function(x, # unscaled data of p columns, no column of 1s for interc
   eps_tele_vec <- rev(exp(seq(log(epsilon_T), log(epsilon_1), length = steps_T)))
 
   # MPR ---------------------------------
-  # Method: "mpr" ----
-  if (method == "mpr") {
+  # model: "mpr" ----
+  if (model == "mpr") {
     # Telescope ----
     tele_mat_scale <- telescope_mpr_base(
       x = x_scale,
@@ -98,7 +110,10 @@ smoothic <- function(x, # unscaled data of p columns, no column of 1s for interc
     zero_pos <- which(abs(theta_final) < zero_tol)
     theta_final[zero_pos] <- 0 # treat values less than zero_tol to zero
 
-    names_coef <- c(paste0("beta_", 0:p), paste0("alpha_", 0:p))
+    names_coef <- c(
+      paste0(colnames_x, "_beta"),
+      paste0(colnames_x, "_alpha")
+    )
     names(theta_final) <- names_coef
     names(theta) <- names_coef
 
@@ -113,9 +128,15 @@ smoothic <- function(x, # unscaled data of p columns, no column of 1s for interc
 
     see_vec <- get_see_func(info_mat_list) # calculate standard errors
     see_vec[zero_pos] <- 0 # if coef treated as zero then change SEE to zero
-  } else if (method == "spr") {
+    names(see_vec) <- names_coef
+
+    # Penalized likelihood value ----
+    plike <- tele_mat_scale[steps_T, "criterion_val"]
+
+
+  } else if (model == "spr") {
     # MPR ---------------------------------
-    # Method: "spr" ----
+    # model: "spr" ----
     # Telescope ----
     tele_mat_scale <- telescope_spr_base(
       x = x_scale,
@@ -135,7 +156,8 @@ smoothic <- function(x, # unscaled data of p columns, no column of 1s for interc
     zero_pos <- which(abs(theta_final) < zero_tol)
     theta_final[zero_pos] <- 0 # set values less than zero_tol to zero
 
-    names_coef <- c(paste0("beta_", 0:p), "alpha_0")
+    names_coef <- c(paste0(colnames_x, "_beta"), "0_alpha")
+
     names(theta_final) <- names_coef
     names(theta) <- names_coef
 
@@ -150,13 +172,75 @@ smoothic <- function(x, # unscaled data of p columns, no column of 1s for interc
 
     see_vec <- get_see_func(info_mat_list) # calculate standard errors
     see_vec[zero_pos] <- 0 # if coef treated as zero then change SEE to zero
+    names(see_vec) <- names_coef
+
+    # Penalized likelihood value ----
+    plike <- tele_mat_scale[steps_T, "criterion_val"]
   }
 
   # Output ----
-  list(
+  out <- list(
     "coefficients" = theta_final,
-    "see" = see_vec
+    "see" = see_vec,
+    "model" = model,
+    "plike" = plike,
+    "xvars" = colnames_x
   )
+  class(out) <- "smoothic"
+  out
+}
+
+# print.smoothic ----------------------------------------------------------
+print.smoothic <- function(x, ...) {
+  cat("Model:\n")
+  print(x$model)
+  cat("\nCoefficients:\n")
+  print(x$coefficients)
+}
+
+# summary.smoothic --------------------------------------------------------
+summary.smoothic <- function(x, ...) {
+  coefficients <- x$coefficients
+  see <- x$see
+
+  zeropos <- which(coefficients == 0)
+
+  coefficients[zeropos] <- NA
+  see[zeropos] <- NA
+
+  zval <- coefficients / see
+  pval <- 1 * pnorm(abs(zval), lower.tail = FALSE)
+
+  coefmat <- cbind(
+    Estimate = coefficients,
+    SEE = see,
+    Z = zval,
+    Pvalue = pval
+  )
+  out <- list(
+    model = x$model,
+    coefmat = coefmat,
+    plike = unname(x$plike)
+  )
+  class(out) <- "summary.smoothic"
+  out
+}
+
+# print.summary.smoothic --------------------------------------------------
+print.summary.smoothic <- function(x, ...) {
+  cat("Model:\n")
+  print(x$model)
+  cat("\nCoefficients:\n")
+  printCoefmat(x$coefmat,
+               cs.ind = 1:2,
+               tst.ind = 3,
+               P.values = TRUE,
+               has.Pvalue = TRUE,
+               signif.legend = TRUE,
+               na.print = "0" # change NA to 0 for printing
+  )
+  cat("Penalized Likelihood:\n")
+  print(x$plike) # BIC or AIC = -2*plike
 }
 
 # Iterative Loop ----------------------------------------------------------

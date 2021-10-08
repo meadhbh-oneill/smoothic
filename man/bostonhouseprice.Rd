@@ -20,7 +20,6 @@ A data frame with 506 rows and 9 variables:
 }
 \source{
 \url{https://CRAN.R-project.org/package=wooldridge}
-These data were obtained from the \code{wooldridge} package.
 }
 \usage{
 bostonhouseprice
