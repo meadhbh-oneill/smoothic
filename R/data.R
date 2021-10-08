@@ -6,10 +6,17 @@
 #'
 #' @format A data frame with 97 rows and 9 variables:
 #' \describe{
+<<<<<<< HEAD
 #'   \item{lcavol}{log(cancer volume (\eqn{cm^{3}}))}
 #'   \item{lweight}{log(prostate weight (g))}
 #'   \item{age}{age of the patient}
 #'   \item{lbph}{log(amount of benign prostatic hyperplasia (\eqn{cm^{2}}))}
+=======
+#'   \item{lcavol}{log(cancer volume (\eqn{cm^3}))}
+#'   \item{lweight}{log(prostate weight (g))}
+#'   \item{age}{age of the patient}
+#'   \item{lbph}{log(amount of benign prostatic hyperplasia (\eqn{cm^2}))}
+>>>>>>> 88a53af33957b960951d1dd82024764158b01f63
 #'   \item{svi}{presence of seminal vesicle invasion (1=yes, 0=no)}
 #'   \item{lcp}{log(capsular penetration (cm))}
 #'   \item{gleason}{Gleason score}
