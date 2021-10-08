@@ -45,7 +45,6 @@
 #'   }
 #'
 #' @source \url{https://CRAN.R-project.org/package=alr4}
-#' These data were obtained from the \code{alr4} package.
 #'
 #' @references
 #' Weisberg, S. (2014). Applied Linear Regression, 4th edition. Hoboken NJ: Wiley.
@@ -71,7 +70,6 @@
 #'    }
 #'
 #' @source \url{https://CRAN.R-project.org/package=wooldridge}
-#' These data were obtained from the \code{wooldridge} package.
 #'
 #' @references
 #' Harrison Jr, D. and Rubinfeld, D. L. (1978). Hedonic housing prices and the

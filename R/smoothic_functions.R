@@ -1,7 +1,6 @@
-#' @title Multi-Parameter Smooth Information Criterion (MPR-SIC) Variable Selection
-#'  Method
+#' @title Variable Selection Using a Smooth Information Criterion (SIC)
 #'
-#' @description Implements the normal MPR-SIC \eqn{\epsilon}-telescope method,
+#' @description Implements the SIC \eqn{\epsilon}-telescope method,
 #' returns coefficients and estimated standard errors (SEE). Note that the
 #' function will scale the predictors to have unit variance, however, the final
 #' estimates are converted back to their original scale.
@@ -9,30 +8,26 @@
 #' @param x Input matrix (unstandardized), of dimension nobs x nvars; each row
 #' is an observation vector.
 #' @param y Response variable.
+#' @param method The type of regression to be implemented, either \code{method = "mpr"}
+#' for multi-parameter regression, or \code{method = "spr"} for single parameter
+#' regression (i.e., classical normal linear regression). Defaults to \code{method = "mpr"}.
 #' @param lambda Value of penalty tuning parameter. Suggested values are
 #' \code{"log(n)"} and \code{"2"} for the BIC and AIC respectively. Defaults to
 #' \code{lambda ="log(n)"} for the BIC case.
-#' @param get_see Logical flag for estimation of standard errors. Defaults to
-#' \code{get_see=FALSE}.
 #' @param epsilon_1 Starting value for \eqn{\epsilon}-telescope. Defaults to 10.
 #' @param epsilon_T Final value for \eqn{\epsilon}-telescope. Defaults to
 #' \code{1e-05}.
 #' @param steps_T Number of steps in \eqn{\epsilon}-telescope. Defaults to 100.
 #' @param zero_tol Coefficients below this value are treated as being zero.
 #' Defaults to \code{1e-08}.
-#' @param theta_init Starting parameter values for the optimization. Defaults
-#' to \code{theta_init="lm"}, which obtains the linear model estimates.
-#' Alternatively, a vector of unscaled starting parameter values of length
-#' (2*nvars + 2) can be used, i.e., initial parameter values for the location
-#' and dispersion parameters including the intercepts.
-#' @param initial_step Initial step length for step halving in Newton-Raphson
-#' algorithm. Defaults to 10.
-#' @param max_step_it Maxiumum allowable number of steps to take for step
-#' halving in Newton-Raphson algorithm. Defaults to \code{1e+03}.
 #' @param tol Convergence tolerance for the optimization. Defaults to
 #' \code{1e-08}.
 #' @param max_it Maximum nuber of iterations to performed before the
 #' optimization is terminated. Defaults to \code{1e+04}.
+#' @param initial_step Initial step length for step halving in Newton-Raphson
+#' algorithm. Defaults to 10.
+#' @param max_step_it Maxiumum allowable number of steps to take for step
+#' halving in Newton-Raphson algorithm. Defaults to \code{1e+03}.
 #'
 #' @return A list with estimates and estimated standard errors.
 #' \itemize{
@@ -46,19 +41,18 @@
 #' results_mpr$see
 #' @export
 
-smoothic_mpr <- function(x, # unscaled data of p columns, no column of 1s for intercept
-                         y,
-                         lambda = "log(n)", # lambda_beta = lambda_alpha
-                         get_see = FALSE, # should estimated standard errors be calculated?
-                         epsilon_1 = 10,
-                         epsilon_T = 1e-05,
-                         steps_T = 100,
-                         zero_tol = 1e-08, # values less than this treated as zero
-                         theta_init = "lm", # "lm" gets lm values or can supply vector of length (2p + 2) of UNSCALED coefficients
-                         initial_step = 10,
-                         max_step_it = 1e+03,
-                         tol = 1e-08,
-                         max_it = 1e+04) {
+smoothic <- function(x, # unscaled data of p columns, no column of 1s for intercept
+                     y,
+                     method = "mpr", # either "mpr" or "spr"
+                     lambda = "log(n)", # lambda_beta = lambda_alpha
+                     epsilon_1 = 10,
+                     epsilon_T = 1e-05,
+                     steps_T = 100,
+                     zero_tol = 1e-08, # values less than this treated as zero
+                     tol = 1e-08,
+                     max_it = 1e+04,
+                     initial_step = 10,
+                     max_step_it = 1e+03) {
   stopifnot(!all(x[, 1] == 1)) # make sure intercept column not included
   n <- length(y)
   p <- ncol(x) # not including intercept
@@ -72,46 +66,43 @@ smoothic_mpr <- function(x, # unscaled data of p columns, no column of 1s for in
   x_sd <- apply(x, 2, sd) # save sd for later to transform back
 
   # Initial values ----
-  if (theta_init[1] == "lm") {
-    lm_fit <- stats::lm(y ~ x_scale[, -1]) # remove intercept column
-    lm_coef_sig <- c(
-      unname(lm_fit$coefficients),
-      log((summary(lm_fit)$sigma)^2)
-    )
-    theta_init <- c(lm_coef_sig, rep(0, p)) # vector of zeros as initial values for alpha parameters
-  } else if (theta_init[1] != "lm") { # if supplying initial values...
-    stopifnot(length(theta_init) == ((2 * p) + 2)) # should include starting value for intercept and variance term
-    theta_init <- theta_init * (c(1, x_sd, 1, x_sd)) # get scaled coefficients
-  }
+  lm_fit <- stats::lm(y ~ x_scale[, -1]) # remove intercept column
+  lm_coef_sig <- c(
+    unname(lm_fit$coefficients),
+    log((summary(lm_fit)$sigma)^2)
+  )
+  theta_init <- c(lm_coef_sig, rep(0, p)) # vector of zeros as initial values for alpha parameters
 
   # Epsilon telescope vector ----
   eps_tele_vec <- rev(exp(seq(log(epsilon_T), log(epsilon_1), length = steps_T)))
 
-  # Telescope ----
-  tele_mat_scale <- telescope_mpr_base(
-    x = x_scale,
-    y = y,
-    theta_init = theta_init,
-    eps_tele_vec = eps_tele_vec,
-    lambda = lambda,
-    initial_step = initial_step,
-    max_step_it = max_step_it,
-    tol = tol,
-    max_it = max_it
-  )
-  theta_scale <- tele_mat_scale[steps_T, (2:((2 * p) + 3))] # extract estimates
-  theta <- as.vector(theta_scale / c(1, x_sd, 1, x_sd)) # unscale (convert back)
-  theta_final <- theta # treat some as zero
+  # MPR ---------------------------------
+  # Method: "mpr" ----
+  if (method == "mpr") {
+    # Telescope ----
+    tele_mat_scale <- telescope_mpr_base(
+      x = x_scale,
+      y = y,
+      theta_init = theta_init,
+      eps_tele_vec = eps_tele_vec,
+      lambda = lambda,
+      initial_step = initial_step,
+      max_step_it = max_step_it,
+      tol = tol,
+      max_it = max_it
+    )
+    theta_scale <- tele_mat_scale[steps_T, (2:((2 * p) + 3))] # extract estimates
+    theta <- as.vector(theta_scale / c(1, x_sd, 1, x_sd)) # unscale (convert back)
+    theta_final <- theta # treat some as zero
 
-  zero_pos <- which(abs(theta_final) < zero_tol)
-  theta_final[zero_pos] <- 0 # treat values less than zero_tol to zero
+    zero_pos <- which(abs(theta_final) < zero_tol)
+    theta_final[zero_pos] <- 0 # treat values less than zero_tol to zero
 
-  names_coef <- c(paste0("beta_", 0:p), paste0("alpha_", 0:p))
-  names(theta_final) <- names_coef
-  names(theta) <- names_coef
+    names_coef <- c(paste0("beta_", 0:p), paste0("alpha_", 0:p))
+    names(theta_final) <- names_coef
+    names(theta) <- names_coef
 
-  # Get standard errors ----
-  if (get_see == TRUE) {
+    # Get standard errors ----
     info_mat_list <- information_matrices_mpr(
       theta = theta,
       x = as.matrix(cbind(rep(1, n), x)), # include col of 1's in raw data
@@ -122,109 +113,33 @@ smoothic_mpr <- function(x, # unscaled data of p columns, no column of 1s for in
 
     see_vec <- get_see_func(info_mat_list) # calculate standard errors
     see_vec[zero_pos] <- 0 # if coef treated as zero then change SEE to zero
-  } else if (get_see == FALSE) {
-    see_vec <- NULL
-  }
-
-  # Output ----
-  list(
-    "coefficients" = theta_final,
-    "see" = see_vec
-  )
-}
-
-#' @title Single Parameter Smooth Information Criterion (SPR-SIC) Variable Selection
-#'  Method
-#'
-#' @description Implements the normal SPR-SIC \eqn{\epsilon}-telescope method,
-#' returns coefficients and estimated standard errors (SEE). Note that the
-#' function will scale the predictors to have unit variance, however, the final
-#' estimates are converted back to their original scale.
-#'
-#' @inheritParams smoothic_mpr
-#' @param theta_init Starting parameter values for the optimization. Defaults
-#' to \code{theta_init="lm"}, which obtains the linear model estimates.
-#' Alternatively, a vector of unscaled starting parameter values of length
-#' (nvars + 2) can be used, i.e., initial parameter values for the location
-#' parameter (including the intercept) and the variance term.
-#'
-#' @return A list with estimates and estimated standard errors.
-#' \itemize{
-#'   \item \code{coefficients} - vector of coefficients.
-#'   \item \code{see} - vector of estimated standard errors
-#'   (\code{NULL} if \code{get_see = FALSE})}
-#'
-#' @examples
-#' results_spr <- smoothic_spr(x = x, y = y, get_see = TRUE)
-#' results_spr$coefficients
-#' results_spr$see
-#' @export
-smoothic_spr <- function(x, # unscaled data of p columns, no column of 1s for intercept
-                         y,
-                         lambda = "log(n)",
-                         get_see = FALSE,
-                         epsilon_1 = 10,
-                         epsilon_T = 1e-05,
-                         steps_T = 100,
-                         zero_tol = 1e-08, # values less than this treated as zero
-                         theta_init = "lm", # "lm" gets lm values or can supply vector of length (p + 2) of UNSCALED coefficients
-                         initial_step = 10,
-                         max_step_it = 1e+03,
-                         tol = 1e-08,
-                         max_it = 1e+04) {
-  stopifnot(!all(x[, 1] == 1)) # make sure intercept column not included
-  n <- length(y)
-  p <- ncol(x) # not including intercept
-
-  # Scale x ----
-  x_scale <- scale(x,
-    center = FALSE,
-    scale = apply(x, 2, sd)
-  )
-  x_scale <- cbind(rep(1, n), x_scale) # column of 1's for intercept
-  x_sd <- apply(x, 2, sd) # save sd for later to transform back
-
-
-  # Initial values ----
-  if (theta_init[1] == "lm") {
-    lm_fit <- stats::lm(y ~ x_scale[, -1]) # remove intercept column
-    theta_init <- c(
-      unname(lm_fit$coefficients),
-      log((summary(lm_fit)$sigma)^2)
+  } else if (method == "spr") {
+    # MPR ---------------------------------
+    # Method: "spr" ----
+    # Telescope ----
+    tele_mat_scale <- telescope_spr_base(
+      x = x_scale,
+      y = y,
+      theta_init = lm_coef_sig,
+      eps_tele_vec = eps_tele_vec,
+      lambda = lambda,
+      initial_step = initial_step,
+      max_step_it = max_step_it,
+      tol = tol,
+      max_it = max_it
     )
-  } else if (theta_init[1] != "lm") { # if supplying initial values...
-    stopifnot(length(theta_init) == (p + 2)) # should include starting value for intercept and variance term
-    theta_init <- theta_init * (c(1, x_sd, 1)) # get scaled coefficients
-  }
+    theta_scale <- tele_mat_scale[steps_T, (2:(p + 3))] # extract estimates
+    theta <- as.vector(theta_scale / c(1, x_sd, 1)) # unscale (convert back)
+    theta_final <- theta
 
-  # Epsilon telescope vector ----
-  eps_tele_vec <- rev(exp(seq(log(epsilon_T), log(epsilon_1), length = steps_T)))
+    zero_pos <- which(abs(theta_final) < zero_tol)
+    theta_final[zero_pos] <- 0 # set values less than zero_tol to zero
 
-  # Telescope ----
-  tele_mat_scale <- telescope_spr_base(
-    x = x_scale,
-    y = y,
-    theta_init = theta_init,
-    eps_tele_vec = eps_tele_vec,
-    lambda = lambda,
-    initial_step = initial_step,
-    max_step_it = max_step_it,
-    tol = tol,
-    max_it = max_it
-  )
-  theta_scale <- tele_mat_scale[steps_T, (2:(p + 3))] # extract estimates
-  theta <- as.vector(theta_scale / c(1, x_sd, 1)) # unscale (convert back)
-  theta_final <- theta
+    names_coef <- c(paste0("beta_", 0:p), "alpha_0")
+    names(theta_final) <- names_coef
+    names(theta) <- names_coef
 
-  zero_pos <- which(abs(theta_final) < zero_tol)
-  theta_final[zero_pos] <- 0 # set values less than zero_tol to zero
-
-  names_coef <- c(paste0("beta_", 0:p), "alpha_0")
-  names(theta_final) <- names_coef
-  names(theta) <- names_coef
-
-  # Get standard errors ----
-  if (get_see == TRUE) {
+    # Get standard errors ----
     info_mat_list <- information_matrices_spr(
       theta_incl0 = c(theta, rep(0, p)), # include 0's for alpha vector for this func
       x = as.matrix(cbind(rep(1, n), x)), # include col of 1's in raw data
@@ -235,8 +150,6 @@ smoothic_spr <- function(x, # unscaled data of p columns, no column of 1s for in
 
     see_vec <- get_see_func(info_mat_list) # calculate standard errors
     see_vec[zero_pos] <- 0 # if coef treated as zero then change SEE to zero
-  } else if (get_see == FALSE) {
-    see_vec <- NULL
   }
 
   # Output ----
@@ -245,9 +158,6 @@ smoothic_spr <- function(x, # unscaled data of p columns, no column of 1s for in
     "see" = see_vec
   )
 }
-
-
-
 
 # Iterative Loop ----------------------------------------------------------
 # * For both MPR & SPR ----------------------------------------------------
