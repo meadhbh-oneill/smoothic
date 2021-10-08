@@ -30,14 +30,36 @@
 #' halving in Newton-Raphson algorithm. Defaults to \code{1e+03}.
 #'
 #' @return A list with estimates and estimated standard errors.
-#' \describe{
-#'   \item {\code{coefficients}}{vector of coefficients.}
-#'   \item {\code{see}}{vector of estimated standard errors}
+#' \itemize{
+#'   \item \code{coefficients} - vector of coefficients.
+#'   \item \code{see} - vector of estimated standard errors
+#'   (\code{NULL} if \code{get_see = FALSE})}
+#'
+#' @author Meadhbh O'Neill, \email{meadhbh.oneill@@ul.ie}
+#'
+#' @references O'Neill, M. and Burke, K. (2021) Variable Selection Using a Smooth
+#' Information Criterion for Multi-Parameter Regression Models. arXiv:2110.02643 [stat.ME]
 #'
 #' @examples
-#' results_mpr <- smoothic_mpr(x = x, y = y, get_see = TRUE)
-#' results_mpr$coefficients
-#' results_mpr$see
+#' # Prostate Cancer Data
+#' x <- pcancer[, !(names_pcancer %in% c("lpsa"))]
+#' y <- pcancer$lpsa
+#'
+#' # MPR Model
+#' results_mpr <- smoothic(
+#'   x = x,
+#'   y = y,
+#'   model = "mpr"
+#' )
+#' summary(results_mpr)
+#'
+#' # MPR Model
+#' results_spr <- smoothic(
+#'   x = x,
+#'   y = y,
+#'   model = "spr"
+#' )
+#' summary(results_spr)
 #' @export
 
 smoothic <- function(x, # unscaled data of p columns, no column of 1s for intercept
@@ -132,8 +154,6 @@ smoothic <- function(x, # unscaled data of p columns, no column of 1s for interc
 
     # Penalized likelihood value ----
     plike <- tele_mat_scale[steps_T, "criterion_val"]
-
-
   } else if (model == "spr") {
     # MPR ---------------------------------
     # model: "spr" ----
@@ -183,25 +203,55 @@ smoothic <- function(x, # unscaled data of p columns, no column of 1s for interc
     "coefficients" = theta_final,
     "see" = see_vec,
     "model" = model,
-    "plike" = plike,
-    "xvars" = colnames_x
+    "plike" = plike
   )
   class(out) <- "smoothic"
   out
 }
 
 # print.smoothic ----------------------------------------------------------
-print.smoothic <- function(x, ...) {
+print.smoothic <- function(x) {
   cat("Model:\n")
   print(x$model)
   cat("\nCoefficients:\n")
   print(x$coefficients)
 }
 
+#' @title Summarising Smooth Information Criterion (SIC) Fits
+#'
+#' @description \code{summary} method class \dQuote{\code{smoothic}}
+#'
+#' @param object an object of class \dQuote{\code{smoothic}} which is the result
+#' of a call to \code{\link{smoothic}}.
+#'
+#' @return A list containing the following components:
+#' \itemize{
+#'   \item \code{model} the matched model from the \code{smoothic} object.
+#'   \item \code{coefmat} a typical coefficient matrix whose columns are the
+#'   estimated regression coefficients, estimated standard errors (SEE) and p-values.
+#'   \item \code{plike} value of the penalized likelihood function.
+#'   }
+#'
+#' @author Meadhbh O'Neill, \email{meadhbh.oneill@@ul.ie}
+#'
+#' @examples
+#' # Prostate Cancer Data
+#' x <- pcancer[, !(names_pcancer %in% c("lpsa"))]
+#' y <- pcancer$lpsa
+#'
+#' # MPR Model
+#' results <- smoothic(
+#'   x = x,
+#'   y = y,
+#'   model = "mpr"
+#' )
+#' summary(results)
+#' @export
+
 # summary.smoothic --------------------------------------------------------
-summary.smoothic <- function(x, ...) {
-  coefficients <- x$coefficients
-  see <- x$see
+summary.smoothic <- function(object) {
+  coefficients <- object$coefficients
+  see <- object$see
 
   zeropos <- which(coefficients == 0)
 
@@ -218,26 +268,26 @@ summary.smoothic <- function(x, ...) {
     Pvalue = pval
   )
   out <- list(
-    model = x$model,
+    model = object$model,
     coefmat = coefmat,
-    plike = unname(x$plike)
+    plike = unname(object$plike)
   )
   class(out) <- "summary.smoothic"
   out
 }
 
 # print.summary.smoothic --------------------------------------------------
-print.summary.smoothic <- function(x, ...) {
+print.summary.smoothic <- function(x) {
   cat("Model:\n")
   print(x$model)
   cat("\nCoefficients:\n")
   printCoefmat(x$coefmat,
-               cs.ind = 1:2,
-               tst.ind = 3,
-               P.values = TRUE,
-               has.Pvalue = TRUE,
-               signif.legend = TRUE,
-               na.print = "0" # change NA to 0 for printing
+    cs.ind = 1:2,
+    tst.ind = 3,
+    P.values = TRUE,
+    has.Pvalue = TRUE,
+    signif.legend = TRUE,
+    na.print = "0" # change NA to 0 for printing
   )
   cat("Penalized Likelihood:\n")
   print(x$plike) # BIC or AIC = -2*plike

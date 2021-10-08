@@ -56,7 +56,11 @@ algorithm. Defaults to 10.}
 halving in Newton-Raphson algorithm. Defaults to \code{1e+03}.}
 }
 \value{
-
+A list with estimates and estimated standard errors.
+\itemize{
+  \item \code{coefficients} - vector of coefficients.
+  \item \code{see} - vector of estimated standard errors
+  (\code{NULL} if \code{get_see = FALSE})}
 }
 \description{
 Implements the SIC \eqn{\epsilon}-telescope method,
@@ -68,4 +72,11 @@ estimates are converted back to their original scale.
 results_mpr <- smoothic_mpr(x = x, y = y, get_see = TRUE)
 results_mpr$coefficients
 results_mpr$see
+}
+\references{
+O'Neill, M. and Burke, K. (2021) Variable Selection Using a Smooth
+Information Criterion for Multi-Parameter Regression Models. arXiv:2110.02643 [stat.ME]
+}
+\author{
+Meadhbh O'Neill, \email{meadhbh.oneill@ul.ie}
 }
