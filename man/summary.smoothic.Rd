@@ -27,13 +27,10 @@ A list containing the following components:
 }
 \examples{
 # Sniffer Data --------------------
-x <- sniffer[, 1:4]
-y <- sniffer$y
-
 # MPR Model ----
 results <- smoothic(
-  x = x,
-  y = y,
+  formula = y ~ .,
+  data = sniffer
   model = "mpr"
 )
 summary(results)

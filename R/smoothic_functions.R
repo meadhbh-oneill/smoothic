@@ -50,7 +50,7 @@
 #' # Sniffer Data --------------------
 #' # MPR Model ----
 #' results <- smoothic(
-#'   formula = Y ~ .,
+#'   formula = y ~ .,
 #'   data = sniffer
 #'   model = "mpr"
 #' )
@@ -237,13 +237,10 @@ smoothic <- function(formula,
 #'
 #' @examples
 #' # Sniffer Data --------------------
-#' x <- sniffer[, 1:4]
-#' y <- sniffer$y
-#'
 #' # MPR Model ----
 #' results <- smoothic(
-#'   x = x,
-#'   y = y,
+#'   formula = y ~ .,
+#'   data = sniffer
 #'   model = "mpr"
 #' )
 #' summary(results)
