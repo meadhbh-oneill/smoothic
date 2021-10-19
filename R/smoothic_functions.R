@@ -6,12 +6,15 @@
 #' Note that the function will scale the predictors to have unit variance, however,
 #' the final estimates are converted back to their original scale.
 #'
-#' @param x Input matrix (unstandardized), of dimension nobs x nvars; each row
-#' is an observation vector.
-#' @param y Response variable.
+#' @param formula An object of class \code{"\link{formula}"}: a two-sided object
+#' with response on the left hand side and the model variables on the right hand side.
+#'
+#' @param data A data frame containing the variables in the model; the data frame
+#' should be unstandardized.
+#'
 #' @param model The type of regression to be implemented, either \code{model = "mpr"}
 #' for multi-parameter regression, or \code{model = "spr"} for single parameter
-#' regression (i.e., classical normal linear regression). Defaults to \code{model = "mpr"}.
+#' regression (i.e., classical normal linear regression). Defaults to \code{model="mpr"}.
 #' @param lambda Value of penalty tuning parameter. Suggested values are
 #' \code{"log(n)"} and \code{"2"} for the BIC and AIC respectively. Defaults to
 #' \code{lambda ="log(n)"} for the BIC case.
@@ -45,20 +48,20 @@
 #'
 #' @examples
 #' # Sniffer Data --------------------
-#' x <- sniffer[, 1:4]
-#' y <- sniffer$y
-#'
 #' # MPR Model ----
 #' results <- smoothic(
-#'   x = x,
-#'   y = y,
+#'   formula = Y ~ .,
+#'   data = sniffer
 #'   model = "mpr"
 #' )
 #' summary(results)
+#'
+#' @importFrom stats sd lm
+#'
 #' @export
 
-smoothic <- function(x, # unscaled data of p columns, no column of 1s for intercept
-                     y,
+smoothic <- function(formula,
+                     data,
                      model = "mpr", # either "mpr" or "spr"
                      lambda = "log(n)", # lambda_beta = lambda_alpha
                      epsilon_1 = 10,
@@ -69,6 +72,14 @@ smoothic <- function(x, # unscaled data of p columns, no column of 1s for interc
                      max_it = 1e+04,
                      initial_step = 10,
                      max_step_it = 1e+03) {
+  # Formula object ----
+  # x
+  x <- model.matrix(formula, data = data)[, -1] # remove column of 1s
+
+  # y
+  y <- model.extract(model.frame(formula, data = data), "response")
+
+
   if (all(x[, 1] == 1)) {
     stop("Error: Make sure column of 1's for intercept is not included in x")
   }
@@ -89,13 +100,13 @@ smoothic <- function(x, # unscaled data of p columns, no column of 1s for interc
   # Scale x ----
   x_scale <- scale(x,
     center = FALSE,
-    scale = apply(x, 2, stats::sd)
+    scale = apply(x, 2, sd)
   )
   x_scale <- cbind(rep(1, n), x_scale) # column of 1's for intercept
-  x_sd <- apply(x, 2, stats::sd) # save sd for later to transform back
+  x_sd <- apply(x, 2, sd) # save sd for later to transform back
 
   # Initial values ----
-  lm_fit <- stats::lm(y ~ x_scale[, -1]) # remove intercept column
+  lm_fit <- lm(y ~ x_scale[, -1]) # remove intercept column
   lm_coef_sig <- c(
     unname(lm_fit$coefficients),
     log((summary(lm_fit)$sigma)^2)
@@ -237,6 +248,8 @@ smoothic <- function(x, # unscaled data of p columns, no column of 1s for interc
 #' )
 #' summary(results)
 #'
+#' @importFrom stats pnorm
+#'
 #' @export
 
 summary.smoothic <- function(object, ...) {
@@ -249,7 +262,7 @@ summary.smoothic <- function(object, ...) {
   see[zeropos] <- NA
 
   zval <- coefficients / see
-  pval <- 1 * stats::pnorm(abs(zval), lower.tail = FALSE)
+  pval <- 1 * pnorm(abs(zval), lower.tail = FALSE)
 
   coefmat <- cbind(
     Estimate = coefficients,

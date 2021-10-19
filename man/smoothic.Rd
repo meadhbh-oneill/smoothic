@@ -5,8 +5,8 @@
 \title{Variable Selection Using a Smooth Information Criterion (SIC)}
 \usage{
 smoothic(
-  x,
-  y,
+  formula,
+  data,
   model = "mpr",
   lambda = "log(n)",
   epsilon_1 = 10,
@@ -20,14 +20,15 @@ smoothic(
 )
 }
 \arguments{
-\item{x}{Input matrix (unstandardized), of dimension nobs x nvars; each row
-is an observation vector.}
+\item{formula}{An object of class \code{"\link{formula}"}: a two-sided object
+with response on the left hand side and the model variables on the right hand side.}
 
-\item{y}{Response variable.}
+\item{data}{A data frame containing the variables in the model; the data frame
+should be unstandardized.}
 
 \item{model}{The type of regression to be implemented, either \code{model = "mpr"}
 for multi-parameter regression, or \code{model = "spr"} for single parameter
-regression (i.e., classical normal linear regression). Defaults to \code{model = "mpr"}.}
+regression (i.e., classical normal linear regression). Defaults to \code{model="mpr"}.}
 
 \item{lambda}{Value of penalty tuning parameter. Suggested values are
 \code{"log(n)"} and \code{"2"} for the BIC and AIC respectively. Defaults to
@@ -73,16 +74,14 @@ the final estimates are converted back to their original scale.
 }
 \examples{
 # Sniffer Data --------------------
-x <- sniffer[, 1:4]
-y <- sniffer$y
-
 # MPR Model ----
 results <- smoothic(
-  x = x,
-  y = y,
+  formula = Y ~ .,
+  data = sniffer
   model = "mpr"
 )
 summary(results)
+
 }
 \references{
 O'Neill, M. and Burke, K. (2021) Variable Selection Using a Smooth

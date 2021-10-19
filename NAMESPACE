@@ -2,3 +2,6 @@
 
 S3method(summary,smoothic)
 export(smoothic)
+importFrom(stats,lm)
+importFrom(stats,pnorm)
+importFrom(stats,sd)
