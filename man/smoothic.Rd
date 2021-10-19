@@ -77,7 +77,7 @@ the final estimates are converted back to their original scale.
 # MPR Model ----
 results <- smoothic(
   formula = y ~ .,
-  data = sniffer
+  data = sniffer,
   model = "mpr"
 )
 summary(results)

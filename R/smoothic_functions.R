@@ -51,12 +51,12 @@
 #' # MPR Model ----
 #' results <- smoothic(
 #'   formula = y ~ .,
-#'   data = sniffer
+#'   data = sniffer,
 #'   model = "mpr"
 #' )
 #' summary(results)
 #'
-#' @importFrom stats sd lm
+#' @importFrom stats sd lm model.matrix model.frame model.extract
 #'
 #' @export
 
@@ -73,6 +73,7 @@ smoothic <- function(formula,
                      initial_step = 10,
                      max_step_it = 1e+03) {
   # Formula object ----
+  cl <- match.call()
   # x
   x <- model.matrix(formula, data = data)[, -1] # remove column of 1s
 
@@ -209,7 +210,8 @@ smoothic <- function(formula,
     "coefficients" = theta_final,
     "see" = see_vec,
     "model" = model,
-    "plike" = plike
+    "plike" = plike,
+    "call" = cl
   )
   class(out) <- "smoothic"
   out
@@ -240,7 +242,7 @@ smoothic <- function(formula,
 #' # MPR Model ----
 #' results <- smoothic(
 #'   formula = y ~ .,
-#'   data = sniffer
+#'   data = sniffer,
 #'   model = "mpr"
 #' )
 #' summary(results)
@@ -270,7 +272,8 @@ summary.smoothic <- function(object, ...) {
   out <- list(
     model = object$model,
     coefmat = coefmat,
-    plike = unname(object$plike)
+    plike = unname(object$plike),
+    call = object$call
   )
   class(out) <- "summary.smoothic"
   out
@@ -279,22 +282,28 @@ summary.smoothic <- function(object, ...) {
 
 
 # print.smoothic ----------------------------------------------------------
+#' @aliases print.smoothic
 #' @export
-print.smoothic <- function(object, ...) {
+print.smoothic <- function(x, ...) {
+  cat("Call:\n")
+  print(x$call)
   cat("Model:\n")
-  print(object$model)
+  print(x$model)
   cat("\nCoefficients:\n")
-  print(object$coefficients)
+  print(x$coefficients)
 }
 
 # print.summary.smoothic --------------------------------------------------
+#' @aliases print.summary.smoothic
 #' @importFrom stats printCoefmat
 #' @export
-print.summary.smoothic <- function(object, ...) {
+print.summary.smoothic <- function(x, ...) {
+  cat("Call:\n")
+  print(x$call)
   cat("Model:\n")
-  print(object$model)
+  print(x$model)
   cat("\nCoefficients:\n")
-  printCoefmat(object$coefmat,
+  printCoefmat(x$coefmat,
     cs.ind = 1:2,
     tst.ind = 3,
     P.values = TRUE,
@@ -303,7 +312,7 @@ print.summary.smoothic <- function(object, ...) {
     na.print = "0" # change NA to 0 for printing
   )
   cat("Penalized Likelihood:\n")
-  print(object$plike) # BIC or AIC = -2*plike
+  print(x$plike) # BIC or AIC = -2*plike
 }
 
 # Iterative Loop ----------------------------------------------------------

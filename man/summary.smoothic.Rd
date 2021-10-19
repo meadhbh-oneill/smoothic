@@ -30,7 +30,7 @@ A list containing the following components:
 # MPR Model ----
 results <- smoothic(
   formula = y ~ .,
-  data = sniffer
+  data = sniffer,
   model = "mpr"
 )
 summary(results)
