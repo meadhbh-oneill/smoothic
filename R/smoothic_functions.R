@@ -56,8 +56,6 @@
 #' )
 #' summary(results)
 #'
-#' @importFrom stats sd lm
-#'
 #' @export
 
 smoothic <- function(formula,
@@ -100,13 +98,13 @@ smoothic <- function(formula,
   # Scale x ----
   x_scale <- scale(x,
     center = FALSE,
-    scale = apply(x, 2, sd)
+    scale = apply(x, 2, stats::sd)
   )
   x_scale <- cbind(rep(1, n), x_scale) # column of 1's for intercept
-  x_sd <- apply(x, 2, sd) # save sd for later to transform back
+  x_sd <- apply(x, 2, stats::sd) # save sd for later to transform back
 
   # Initial values ----
-  lm_fit <- lm(y ~ x_scale[, -1]) # remove intercept column
+  lm_fit <- stats::lm(y ~ x_scale[, -1]) # remove intercept column
   lm_coef_sig <- c(
     unname(lm_fit$coefficients),
     log((summary(lm_fit)$sigma)^2)
@@ -245,8 +243,6 @@ smoothic <- function(formula,
 #' )
 #' summary(results)
 #'
-#' @importFrom stats pnorm
-#'
 #' @export
 
 summary.smoothic <- function(object, ...) {
@@ -259,7 +255,7 @@ summary.smoothic <- function(object, ...) {
   see[zeropos] <- NA
 
   zval <- coefficients / see
-  pval <- 1 * pnorm(abs(zval), lower.tail = FALSE)
+  pval <- 1 * stats::pnorm(abs(zval), lower.tail = FALSE)
 
   coefmat <- cbind(
     Estimate = coefficients,
