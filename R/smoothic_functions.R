@@ -272,7 +272,10 @@ summary.smoothic <- function(object, ...) {
   out
 }
 
+
+
 # print.smoothic ----------------------------------------------------------
+#' @export
 print.smoothic <- function(object, ...) {
   cat("Model:\n")
   print(object$model)
@@ -281,6 +284,7 @@ print.smoothic <- function(object, ...) {
 }
 
 # print.summary.smoothic --------------------------------------------------
+#' @export
 print.summary.smoothic <- function(object, ...) {
   cat("Model:\n")
   print(object$model)
