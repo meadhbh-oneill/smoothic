@@ -85,7 +85,7 @@ summary(results)
 }
 \references{
 O'Neill, M. and Burke, K. (2021) Variable Selection Using a Smooth
-Information Criterion for Multi-Parameter Regression Models. arXiv:2110.02643 [stat.ME]
+Information Criterion for Multi-Parameter Regression Models. <arXiv:2110.02643>
 }
 \author{
 Meadhbh O'Neill

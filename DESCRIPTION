@@ -7,7 +7,7 @@ Maintainer: Meadhbh O'Neill <meadhbh.oneill@ul.ie>
 Description: Implementation of the SIC epsilon-telescope method, either
     using single or multi-parameter regression. This package contains the data
     analyses from O'Neill and Burke (2021). Variable Selection Using a Smooth
-    Information Criterion for Multi-Parameter Regression Models. arXiv:2110.02643 [stat.ME].
+    Information Criterion for Multi-Parameter Regression Models. <arXiv:2110.02643>.
 License: GPL-3
 URL:https://github.com/meadhbh-oneill/smoothic
 Encoding: UTF-8
