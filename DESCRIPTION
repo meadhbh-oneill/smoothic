@@ -4,7 +4,7 @@ Title: Variable Selection Using a Smooth Information Criterion for Multi-Paramet
 Version: 0.1.0
 Author: Meadhbh O'Neill, Kevin Burke
 Maintainer: Meadhbh O'Neill <meadhbh.oneill@ul.ie>
-Description: Implementation of the SIC \eqn{\epsilon}-telescope method, either
+Description: Implementation of the SIC epsilon-telescope method, either
     using single or multi-parameter regression. This package contains the data
     analyses from O'Neill and Burke (2021). Variable Selection Using a Smooth
     Information Criterion for Multi-Parameter Regression Models. arXiv:2110.02643 [stat.ME].
