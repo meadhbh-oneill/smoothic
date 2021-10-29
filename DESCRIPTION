@@ -1,7 +1,7 @@
 Package: smoothic
 Type: Package
 Title: Variable Selection Using a Smooth Information Criterion
-Version: 0.1.0
+Version: 0.1.0.9000
 Authors@R: c(person("Meadhbh", "O'Neill", email = "meadhbh.oneill@ul.ie", role = c("aut", "cre")), person("Kevin", "Burke", role = c("aut")))
 Maintainer: Meadhbh O'Neill <meadhbh.oneill@ul.ie>
 Description: Implementation of the SIC epsilon-telescope method, either
