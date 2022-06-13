@@ -103,7 +103,7 @@ smoothic <- function(formula,
   if (missing(tau)) { # if tau not supplied, then make value
     switch(family,
            "normal" = {
-             tau <- 1e-4
+             tau <- 0.01
            },
            "sgnd" = {
              tau <- 0.15
@@ -155,22 +155,24 @@ smoothic <- function(formula,
     y = y,
     tau = tau,
     epsilon = epsilon_T,
+    kappa_omega = kappa_omega,
     list_family = list_families$smoothgnd,
-    lambda = lambda,
-    ...
+    lambda = lambda
   ) # scaled data
 
   see <- see_scale / x_sd_theta
   see[zero_pos_final] <- 0 # set to zero
   names(see) <- names_coef
 
-  kappa_val <- unname(nu_to_kappa(theta[length(theta)], kappa_omega = kappa_omega))
+  kappa_val <- unname(nu_to_kappa(theta[length(theta)],
+                                  kappa_omega = kappa_omega))
 
   # Return ----
   out <- list(
     "coefficients" = theta,
     "see" = see,
     "model" = model,
+    "family" = family,
     "plike" = fit_out$plike_val,
     "kappa" = kappa_val,
     "kappa_omega" = kappa_omega,
@@ -181,7 +183,40 @@ smoothic <- function(formula,
   out
 }
 
-
+#' @title Summarising Smooth Information Criterion (SIC) Fits
+#'
+#' @aliases summary.smoothic print.summary.smoothic
+#'
+#' @description \code{summary} method class \dQuote{\code{smoothic}}
+#'
+#' @param object an object of class \dQuote{\code{smoothic}} which is the result
+#' of a call to \code{\link{smoothic}}.
+#' @param ... further arguments passed to or from other methods.
+#'
+#' @return A list containing the following components:
+#' \itemize{
+#'   \item \code{model} - the matched model from the \code{smoothic} object.
+#'   \item \code{coefmat} - a typical coefficient matrix whose columns are the
+#'   estimated regression coefficients, estimated standard errors (SEE) and p-values.
+#'   \item \code{plike} - value of the penalized likelihood function.
+#'   }
+#'
+#' @author Meadhbh O'Neill
+#'
+#' @examples
+#' # Sniffer Data --------------------
+#' # MPR Model ----
+#' results <- smoothic(
+#'   formula = y ~ .,
+#'   data = sniffer,
+#'   model = "mpr",
+#'   family = "normal"
+#' )
+#' summary(results)
+#'
+#' @importFrom stats pnorm
+#'
+#' @export
 summary.smoothic <- function(object, ...) {
   coefficients <- object$coefficients
   see <- object$see
@@ -194,9 +229,21 @@ summary.smoothic <- function(object, ...) {
   zval <- coefficients / see
 
   kappa <- object$kappa
+  kappa_omega <- object$kappa_omega
+  tau <- object$tau
 
-  pval <- 1 * pnorm(abs(zval), lower.tail = FALSE)
+  # qgndnorm(p = 0.975, mu = 0, s = sqrt(2), kappa = 2, tau = 1e-6)
+  times <- qgndnorm(p = 0.975, # like getting 1.96 from qnorm(0.975, lower.tail = FALSE)
+                    mu = 0,
+                    s = 1,
+                    kappa = kappa,
+                    tau = tau)
 
+  pval <- times * pgndnorm_vec(q = abs(zval),
+                               mu = 0,
+                               s = 1,
+                               kappa = kappa,
+                               tau = tau)
   coefmat <- cbind(
     Estimate = coefficients,
     SEE = see,
@@ -207,13 +254,78 @@ summary.smoothic <- function(object, ...) {
     model = object$model,
     coefmat = coefmat,
     plike = unname(object$plike),
-    call = object$call
+    call = object$call,
+    family = object$family
   )
   class(out) <- "summary.smoothic"
   out
 }
 
+# print.smoothic ----------------------------------------------------------
+#' @aliases print.smoothic
+#' @export
+print.smoothic <- function(x, ...) {
+  cat("Call:\n")
+  print(x$call)
+  cat("Model:\n")
+  print(x$model)
 
+  kappa_lgl <- ifelse(x$family == "sgnd", "yes_kappa", "no_kappa")
+
+  switch (kappa_lgl,
+    yes_kappa = {
+      cat("\nCoefficients:\n")
+      print(x$coefficients)
+      cat("\nKappa:\n")
+      print(x$kappa)
+    },
+    no_kappa = {
+      coef_short <- x$coefficients[-length(x$coefficients)] # remove nu_0
+      cat("\nCoefficients:\n")
+      print(coef_short)
+    }
+  )
+}
+
+# print.summary.smoothic --------------------------------------------------
+#' @aliases print.summary.smoothic
+#' @importFrom stats printCoefmat
+#' @export
+print.summary.smoothic <- function(x, ...) {
+  cat("Call:\n")
+  print(x$call)
+  cat("Model:\n")
+  print(x$model)
+
+  kappa_lgl <- ifelse(x$family == "sgnd", "yes_kappa", "no_kappa")
+
+  switch (kappa_lgl,
+          yes_kappa = {
+            cat("\nCoefficients:\n")
+            printCoefmat(x$coefmat,
+                         cs.ind = 1:2,
+                         tst.ind = 3,
+                         P.values = TRUE,
+                         has.Pvalue = TRUE,
+                         signif.legend = TRUE,
+                         na.print = "0" # change NA to 0 for printing
+            )
+          },
+          no_kappa = {
+            cat("\nCoefficients:\n")
+            printCoefmat(x$coefmat[-nrow(x$coefmat),], # remove nu_0
+                         cs.ind = 1:2,
+                         tst.ind = 3,
+                         P.values = TRUE,
+                         has.Pvalue = TRUE,
+                         signif.legend = TRUE,
+                         na.print = "0" # change NA to 0 for printing
+            )
+          }
+  )
+  cat("Penalized Likelihood:\n")
+  print(x$plike) # BIC or AIC = -2*plike
+}
 
 # Fitting function for package --------------------------------------------
 fitting_func_pkg <- function(x1,
@@ -330,10 +442,10 @@ get_see_func_user <- function(theta,
                               y,
                               tau,
                               epsilon,
+                              kappa_omega,
                               list_family,
                               lambda,
                               method_c_tilde = "integrate",
-                              kappa_omega,
                               ...) {
   info_mat_list <- information_matrices_numDeriv(
     theta = theta,
@@ -471,23 +583,28 @@ pgndnorm <- function(q,
                      s,
                      kappa,
                      tau) {
-  cdf_df <- F_cdf_full(
-    from = -20, # cdf
-    to = 20,
-    by = 0.001,
-    kappa = kappa,
-    tau = tau,
-    mu = mu,
-    s = s
-  ) %>%
-    as_tibble()
+  if (!is.na(q)) {
+    cdf_df <- F_cdf_full(
+      from = -20, # cdf
+      to = 20,
+      by = 0.001,
+      kappa = kappa,
+      tau = tau,
+      mu = mu,
+      s = s
+    ) %>%
+      as_tibble()
 
-  # Find values of x in dataframe closest to q
-  pos <- which(abs(q - cdf_df$x) == min(abs(q - cdf_df$x)))
+    # Find values of x in dataframe closest to q
+    pos <- which(abs(q - cdf_df$x) == min(abs(q - cdf_df$x)))
 
-  # lower.tail = FALSE (subtract from 1)
-  1 - cdf_df[pos,]$F
+    # lower.tail = FALSE (subtract from 1)
+    1 - cdf_df[pos,]$F
+  } else  NA
 }
+
+pgndnorm_vec <- Vectorize(pgndnorm,
+                          vectorize.args = "q")
 
 # =========================================================================#
 # Fitting Functions --------------------------------------------------------

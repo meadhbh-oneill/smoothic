@@ -45,7 +45,7 @@ x_raw_int <- as_tibble(x_raw) %>%
 
 data <- cbind(x_raw, y_raw) %>% as.data.frame()
 
-out <- smoothic(formula = y_raw ~ .,
+fit1 <- smoothic(formula = y_raw ~ .,
                 data = data,
                 model = "mpr",
                 lambda = "log(n)",
@@ -60,26 +60,35 @@ out <- smoothic(formula = y_raw ~ .,
 out
 
 
-formula = y_raw ~ .;
-data = data;
-model = "mpr";
-lambda = "log(n)";
-epsilon_1 = 0.3;
-epsilon_T = 1e-4;
-steps_T = 100;
-zero_tol = 1e-6;
-max_it = 1e4;
-family = "sgnd";
-optimizer = "nlm"
+fit_sniffer <- smoothic(formula = y ~ .,
+                        data = sniffer,
+                        model = "mpr",
+                        lambda = "log(n)",
+                        epsilon_1 = 10,
+                        epsilon_T = 1e-5,
+                        steps_T = 100,
+                        zero_tol = 1e-8,
+                        max_it = 1e4,
+                        family = "sgnd",
+                        optimizer = "manual",
+                        tau = 0.001,
+                        tol = 1e-8,
+                        initial_step = 10,
+                        max_step_it = 1000,
+                        kappa = 1.5)
 
-
-method_c_tilde = "integrate";
-# nlm
-stepmax_nlm = NA;
-# manual
-tol = 1e-8;
-initial_step = 10;
-max_step_it = 1e3;
-method_c_tilde_deriv = "finite_diff";
-algorithm = "cross_zero";
-h_kappa = 1e-5
+fit_hprice <- smoothic(formula = lprice ~ .,
+                        data = bostonhouseprice,
+                        model = "mpr",
+                        lambda = "log(n)",
+                        epsilon_1 = 10,
+                        epsilon_T = 1e-5,
+                        steps_T = 100,
+                        zero_tol = 1e-8,
+                        max_it = 1e4,
+                        family = "normal",
+                        optimizer = "manual",
+                        tau = 0.01,
+                        tol = 1e-8,
+                        initial_step = 10,
+                        max_step_it = 1000)
