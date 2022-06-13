@@ -31,10 +31,10 @@ A list containing the following components:
 results <- smoothic(
   formula = y ~ .,
   data = sniffer,
-  model = "mpr"
+  model = "mpr",
+  family = "normal"
 )
 summary(results)
-
 }
 \author{
 Meadhbh O'Neill
