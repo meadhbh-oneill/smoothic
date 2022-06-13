@@ -1,3 +1,84 @@
+#' @title Variable Selection Using a Smooth Information Criterion (SIC)
+#'
+#' @description Implements the SIC \eqn{\epsilon}-telescope method, either using
+#' single or multi-parameter regression. Returns estimated coefficients, estimated
+#' standard errors (SEE) and the value of the penalized likelihood function.
+#' Note that the function will scale the predictors to have unit variance, however,
+#' the final estimates are converted back to their original scale.
+#'
+#' @param formula An object of class \code{"\link{formula}"}: a two-sided object
+#' with response on the left hand side and the model variables on the right hand side.
+#'
+#' @param data A data frame containing the variables in the model; the data frame
+#' should be unstandardized.
+#'
+#' @param model The type of regression to be implemented, either \code{model = "mpr"}
+#' for multi-parameter regression, or \code{model = "spr"} for single parameter
+#' regression (i.e., classical normal linear regression). Defaults to \code{model="mpr"}.
+#' @param lambda Value of penalty tuning parameter. Suggested values are
+#' \code{"log(n)"} and \code{"2"} for the BIC and AIC respectively. Defaults to
+#' \code{lambda ="log(n)"} for the BIC case.
+#' @param epsilon_1 Starting value for \eqn{\epsilon}-telescope. Defaults to 0.3.
+#' @param epsilon_T Final value for \eqn{\epsilon}-telescope. Defaults to
+#' \code{1e-04}.
+#' @param steps_T Number of steps in \eqn{\epsilon}-telescope. Defaults to 100.
+#' @param zero_tol Coefficients below this value are treated as being zero.
+#' Defaults to \code{1e-05}.
+#' @param max_it Maximum number of iterations to performed before the
+#' optimization is terminated. Defaults to \code{1e+04}.
+#' @param family The family of the model, default is \code{family = "sgnd"} for the
+#' "Smooth Generalized Distribution" where the shape parameter kappa is also
+#' estimated. Classical regression with normally distributed errors is performed
+#' when \code{family = "normal"}. If \code{family = "laplace}, this corresponds to
+#' a robust regression with errors from the Laplace distribution.
+#' @param optimizer The optimization procedure to be used. Defaults to
+#' \code{optimizer = "nlm"}, where the \code{\link{nlm}} function from the
+#' \bold{stats} package is used. This tends to be more stable than the manually
+#'  coded Newton-Raphson procedure that is used when \code{optimizer = "manual"}.
+#' @param kappa Optional user-supplied positive kappa value (> 0.2 to avoid
+#' computational issues). If supplied, the shape parameter kappa will be fixed
+#' to this value in the optimization. If not supplied, kappa is estimated from the data.
+#' @param tau Optional user-supplied positive smoothing parameter value in the
+#' "Smooth Generalized Normal Distribution". If not supplied, then \code{tau = "0.15"}
+#' when \code{family = "sgnd"} or \code{"laplace"} and \code{tau = "0.01"} when
+#' \code{family = "normal"}. Smaller values of \code{tau} bring the approximation
+#' closer to the absolute value function, but this can cause the optimization to become
+#' unstable. Some issues with standard error calculation with smaller values of
+#' \code{tau} when using the Laplace distribution in the robust regression setting.
+#'
+#' @return A list with estimates and estimated standard errors.
+#' \itemize{
+#'   \item \code{coefficients} - vector of coefficients.
+#'   \item \code{see} - vector of estimated standard errors.
+#'   \item \code{model} - the matched type of model which is called.
+#'   \item \code{plike} - value of the penalized likelihood function.
+#'   \item \code{kappa} - value of the estimated/fixed shape parameter kappa if \code{family = "sgnd"}.
+#'   }
+#'
+#' @author Meadhbh O'Neill
+#'
+#' @references O'Neill, M. and Burke, K. (2021) Variable Selection Using a Smooth
+#' Information Criterion for Multi-Parameter Regression Models. <arXiv:2110.02643>
+#'
+#' O'Neill, M. and Burke, K. (2022) Robust Distributional Regression with
+#' Automatic Variable Selection. <arXiv>
+#'
+#' @examples
+#' # Sniffer Data --------------------
+#' # MPR Model ----
+#' results <- smoothic(
+#'   formula = y ~ .,
+#'   data = sniffer,
+#'   model = "mpr",
+#'   family = "sgnd"
+#' )
+#' summary(results)
+#' @importFrom stats sd lm model.matrix model.frame model.extract nlm integrate
+#' @importFrom MASS rlm
+#' @importFrom dplyr select slice_tail pull
+#'
+#' @export
+
 smoothic <- function(formula,
                      data,
                      model = "mpr",
@@ -5,13 +86,13 @@ smoothic <- function(formula,
                      epsilon_1 = 0.3,
                      epsilon_T = 1e-4,
                      steps_T = 100,
-                     zero_tol = 1e-6,
+                     zero_tol = 1e-5,
                      max_it = 1e4,
                      family = "sgnd",
                      optimizer = "nlm",
                      kappa, # if missing then it is estimated
-                     tau, # if missing and sgnd then set to 0.15, if normal 1e-4 or laplace 0.15
-                     ...) {
+                     tau # if missing and sgnd then set to 0.15, if normal 0.01 or laplace 0.15
+) {
   cl <- match.call()
 
   # x
@@ -39,8 +120,8 @@ smoothic <- function(formula,
 
   # Scale x ----
   x_scale <- scale(x,
-                   center = FALSE,
-                   scale = apply(x, 2, sd)
+    center = FALSE,
+    scale = apply(x, 2, sd)
   )
   x_scale <- cbind(rep(1, n), x_scale) # column of 1's for intercept
   x_sd <- apply(x, 2, sd) # save sd for later to transform back
@@ -50,24 +131,24 @@ smoothic <- function(formula,
   x3 <- as.matrix(rep(1, n))
 
   switch(model,
-         "mpr" = {
-           x2 <- x_scale
-           x_sd_theta <- c(1, x_sd, 1, x_sd, 1) # mpr version
-           names_coef <- c(
-             paste0(colnames_x, "_beta"),
-             paste0(colnames_x, "_alpha"),
-             "nu_0"
-           )
-         },
-         "spr" = {
-           x2 <- x3
-           x_sd_theta <- c(1, x_sd, 1, 1) # spr version
-           names_coef <- c(
-             paste0(colnames_x, "_beta"),
-             "alpha_0",
-             "nu_0"
-           )
-         }
+    "mpr" = {
+      x2 <- x_scale
+      x_sd_theta <- c(1, x_sd, 1, x_sd, 1) # mpr version
+      names_coef <- c(
+        paste0(colnames_x, "_beta"),
+        paste0(colnames_x, "_alpha"),
+        "nu_0"
+      )
+    },
+    "spr" = {
+      x2 <- x3
+      x_sd_theta <- c(1, x_sd, 1, 1) # spr version
+      names_coef <- c(
+        paste0(colnames_x, "_beta"),
+        "alpha_0",
+        "nu_0"
+      )
+    }
   )
 
   p1 <- ncol(x1) - 1
@@ -91,26 +172,26 @@ smoothic <- function(formula,
   if (family != "sgnd") {
     fix_kappa_lgl <- TRUE
     switch(family,
-           "normal" = {
-             kappa <- 2
-           },
-           "laplace" = {
-             kappa <- 1
-           }
+      "normal" = {
+        kappa <- 2
+      },
+      "laplace" = {
+        kappa <- 1
+      }
     )
   }
 
   if (missing(tau)) { # if tau not supplied, then make value
     switch(family,
-           "normal" = {
-             tau <- 0.01
-           },
-           "sgnd" = {
-             tau <- 0.15
-           },
-           "laplace" = {
-             tau <- 0.15
-           }
+      "normal" = {
+        tau <- 0.01
+      },
+      "sgnd" = {
+        tau <- 0.15
+      },
+      "laplace" = {
+        tau <- 0.15
+      }
     )
   }
 
@@ -132,8 +213,7 @@ smoothic <- function(formula,
     kappa = kappa,
     tau = tau,
     fix_kappa_lgl = fix_kappa_lgl,
-    kappa_omega = kappa_omega,
-    ...
+    kappa_omega = kappa_omega
   )
 
   # Estimates ----
@@ -147,25 +227,28 @@ smoothic <- function(formula,
   names(theta) <- names_coef
 
   # Get standard errors ----
-  see_scale <- get_see_func_user(
-    theta = theta_scale,
-    x1 = x1,
-    x2 = x2,
-    x3 = x3,
-    y = y,
-    tau = tau,
-    epsilon = epsilon_T,
-    kappa_omega = kappa_omega,
-    list_family = list_families$smoothgnd,
-    lambda = lambda
-  ) # scaled data
+  see_scale <- suppressWarnings({
+    get_see_func_user(
+      theta = theta_scale,
+      x1 = x1,
+      x2 = x2,
+      x3 = x3,
+      y = y,
+      tau = tau,
+      epsilon = epsilon_T,
+      kappa_omega = kappa_omega,
+      list_family = list_families$smoothgnd,
+      lambda = lambda
+    )
+  }) # scaled data
 
   see <- see_scale / x_sd_theta
   see[zero_pos_final] <- 0 # set to zero
   names(see) <- names_coef
 
   kappa_val <- unname(nu_to_kappa(theta[length(theta)],
-                                  kappa_omega = kappa_omega))
+    kappa_omega = kappa_omega
+  ))
 
   # Return ----
   out <- list(
@@ -175,8 +258,8 @@ smoothic <- function(formula,
     "family" = family,
     "plike" = fit_out$plike_val,
     "kappa" = kappa_val,
-    "kappa_omega" = kappa_omega,
     "tau" = tau,
+    "kappa_omega" = kappa_omega,
     "call" = cl
   )
   class(out) <- "smoothic"
@@ -213,7 +296,6 @@ smoothic <- function(formula,
 #'   family = "normal"
 #' )
 #' summary(results)
-#'
 #' @importFrom stats pnorm
 #'
 #' @export
@@ -233,17 +315,21 @@ summary.smoothic <- function(object, ...) {
   tau <- object$tau
 
   # qgndnorm(p = 0.975, mu = 0, s = sqrt(2), kappa = 2, tau = 1e-6)
-  times <- qgndnorm(p = 0.975, # like getting 1.96 from qnorm(0.975, lower.tail = FALSE)
-                    mu = 0,
-                    s = 1,
-                    kappa = kappa,
-                    tau = tau)
+  times <- qgndnorm(
+    p = 0.975, # like getting 1.96 from qnorm(0.975, lower.tail = FALSE)
+    mu = 0,
+    s = 1,
+    kappa = kappa,
+    tau = tau
+  )
 
-  pval <- times * pgndnorm_vec(q = abs(zval),
-                               mu = 0,
-                               s = 1,
-                               kappa = kappa,
-                               tau = tau)
+  pval <- times * pgndnorm_vec(
+    q = abs(zval),
+    mu = 0,
+    s = 1,
+    kappa = kappa,
+    tau = tau
+  )
   coefmat <- cbind(
     Estimate = coefficients,
     SEE = see,
@@ -272,7 +358,7 @@ print.smoothic <- function(x, ...) {
 
   kappa_lgl <- ifelse(x$family == "sgnd", "yes_kappa", "no_kappa")
 
-  switch (kappa_lgl,
+  switch(kappa_lgl,
     yes_kappa = {
       cat("\nCoefficients:\n")
       print(x$coefficients)
@@ -299,29 +385,29 @@ print.summary.smoothic <- function(x, ...) {
 
   kappa_lgl <- ifelse(x$family == "sgnd", "yes_kappa", "no_kappa")
 
-  switch (kappa_lgl,
-          yes_kappa = {
-            cat("\nCoefficients:\n")
-            printCoefmat(x$coefmat,
-                         cs.ind = 1:2,
-                         tst.ind = 3,
-                         P.values = TRUE,
-                         has.Pvalue = TRUE,
-                         signif.legend = TRUE,
-                         na.print = "0" # change NA to 0 for printing
-            )
-          },
-          no_kappa = {
-            cat("\nCoefficients:\n")
-            printCoefmat(x$coefmat[-nrow(x$coefmat),], # remove nu_0
-                         cs.ind = 1:2,
-                         tst.ind = 3,
-                         P.values = TRUE,
-                         has.Pvalue = TRUE,
-                         signif.legend = TRUE,
-                         na.print = "0" # change NA to 0 for printing
-            )
-          }
+  switch(kappa_lgl,
+    yes_kappa = {
+      cat("\nCoefficients:\n")
+      printCoefmat(x$coefmat,
+        cs.ind = 1:2,
+        tst.ind = 3,
+        P.values = TRUE,
+        has.Pvalue = TRUE,
+        signif.legend = TRUE,
+        na.print = "0" # change NA to 0 for printing
+      )
+    },
+    no_kappa = {
+      cat("\nCoefficients:\n")
+      printCoefmat(x$coefmat[-nrow(x$coefmat), ], # remove nu_0
+        cs.ind = 1:2,
+        tst.ind = 3,
+        P.values = TRUE,
+        has.Pvalue = TRUE,
+        signif.legend = TRUE,
+        na.print = "0" # change NA to 0 for printing
+      )
+    }
   )
   cat("Penalized Likelihood:\n")
   print(x$plike) # BIC or AIC = -2*plike
@@ -360,15 +446,15 @@ fitting_func_pkg <- function(x1,
 
   if (missing(method_initial_values)) {
     switch(family,
-           "sgnd" = {
-             method_initial_values <- "lm"
-           },
-           "normal" = {
-             method_initial_values <- "lm"
-           },
-           "laplace" = {
-             method_initial_values <- "rlm" # robust linear model
-           }
+      "sgnd" = {
+        method_initial_values <- "lm"
+      },
+      "normal" = {
+        method_initial_values <- "lm"
+      },
+      "laplace" = {
+        method_initial_values <- "rlm" # robust linear model
+      }
     )
   }
 
@@ -574,8 +660,10 @@ qgndnorm <- function(p,
     s = s
   )
 
-  F2x(u = p,
-      F = F)
+  F2x(
+    u = p,
+    F = F
+  )
 }
 
 pgndnorm <- function(q,
@@ -584,7 +672,7 @@ pgndnorm <- function(q,
                      kappa,
                      tau) {
   if (!is.na(q)) {
-    cdf_df <- F_cdf_full(
+    cdf_df <- as.data.frame(F_cdf_full(
       from = -20, # cdf
       to = 20,
       by = 0.001,
@@ -592,19 +680,21 @@ pgndnorm <- function(q,
       tau = tau,
       mu = mu,
       s = s
-    ) %>%
-      as_tibble()
+    ))
 
     # Find values of x in dataframe closest to q
     pos <- which(abs(q - cdf_df$x) == min(abs(q - cdf_df$x)))
 
     # lower.tail = FALSE (subtract from 1)
-    1 - cdf_df[pos,]$F
-  } else  NA
+    1 - cdf_df[pos, ]$F
+  } else {
+    NA
+  }
 }
 
 pgndnorm_vec <- Vectorize(pgndnorm,
-                          vectorize.args = "q")
+  vectorize.args = "q"
+)
 
 # =========================================================================#
 # Fitting Functions --------------------------------------------------------
@@ -666,9 +756,9 @@ xj_smooth_gnd <- function(x,
   )
 
   density_func_val <- density_gnd_approx_standard(x,
-                                                  kappa_shape = kappa_shape,
-                                                  tau = tau,
-                                                  c_tilde = c_tilde_val
+    kappa_shape = kappa_shape,
+    tau = tau,
+    c_tilde = c_tilde_val
   )
   (x^j) * density_func_val # integrate over this
 }
@@ -676,18 +766,18 @@ xj_smooth_gnd <- function(x,
 variance_standard_smooth_gnd <- function(kappa_shape,
                                          tau) {
   ex <- integrate(xj_smooth_gnd,
-                  lower = -Inf,
-                  upper = Inf,
-                  j = 1,
-                  kappa_shape = kappa_shape,
-                  tau = tau
+    lower = -Inf,
+    upper = Inf,
+    j = 1,
+    kappa_shape = kappa_shape,
+    tau = tau
   )$value # should be zero for symmetric distributions
   ex2 <- integrate(xj_smooth_gnd,
-                   lower = -Inf,
-                   upper = Inf,
-                   j = 2,
-                   kappa_shape = kappa_shape,
-                   tau = tau
+    lower = -Inf,
+    upper = Inf,
+    j = 2,
+    kappa_shape = kappa_shape,
+    tau = tau
   )$value
   # variance exp(x^2) - exp(x)^2
   ex2 - (ex^2)
@@ -709,12 +799,12 @@ c_tilde_integrate_smoothgnd <- function(kappa,
   for (i in kappa) {
     kappa_pos <- which(kappa == i)
     integral <- integrate(density_gnd_approx_standard,
-                          lower = -Inf,
-                          upper = Inf,
-                          # rel.tol = 1e-15,
-                          kappa_shape = i,
-                          tau = tau,
-                          c_tilde = 1 # 1 as unknown here
+      lower = -Inf,
+      upper = Inf,
+      # rel.tol = 1e-15,
+      kappa_shape = i,
+      tau = tau,
+      c_tilde = 1 # 1 as unknown here
     )$value
     output[kappa_pos] <- (1 / integral) # reciprocal
   }
@@ -748,11 +838,11 @@ c_tilde_integrate_transform_smoothgnd <- function(kappa,
   for (i in kappa) {
     kappa_pos <- which(kappa == i)
     integral <- 2 * integrate(density_gnd_approx_standard_transform,
-                              lower = 0,
-                              upper = 1,
-                              kappa_shape = i,
-                              tau = tau,
-                              c_tilde = 1 # 1 as unknown here
+      lower = 0,
+      upper = 1,
+      kappa_shape = i,
+      tau = tau,
+      c_tilde = 1 # 1 as unknown here
     )$value
     output[kappa_pos] <- (1 / integral) # reciprocal
   }
@@ -805,12 +895,12 @@ c_tilde_trapezoid_smoothgnd <- function(kappa,
   for (i in kappa) {
     kappa_pos <- which(kappa == i)
     integral <- 2 * trapezoidal_approximation(density_gnd_approx_standard_transform,
-                                              a = 0,
-                                              b = 1 - (1e-10),
-                                              N = N,
-                                              kappa_shape = i,
-                                              tau = tau,
-                                              c_tilde = 1
+      a = 0,
+      b = 1 - (1e-10),
+      N = N,
+      kappa_shape = i,
+      tau = tau,
+      c_tilde = 1
     ) # 2 * integral between 0 and 1
     output[kappa_pos] <- (1 / integral) # reciprocal
   }
@@ -881,9 +971,9 @@ c_tilde_prime_func_numDeriv <- function(kappa,
   }
 
   c_tilde_prime_vec <- numDeriv::grad(FUN_c_tilde,
-                                      x = kappa,
-                                      tau = tau,
-                                      ...
+    x = kappa,
+    tau = tau,
+    ...
   )
 
   if (length(c_tilde_prime_vec) != length_kappa) {
@@ -906,9 +996,9 @@ c_tilde_double_prime_func_numDeriv <- function(kappa,
   }
 
   c_tilde_double_prime_vec <- hessian_vectorized(FUN_c_tilde,
-                                                 x = kappa,
-                                                 tau = tau,
-                                                 ...
+    x = kappa,
+    tau = tau,
+    ...
   )
 
   if (length(c_tilde_double_prime_vec) != length_kappa) {
@@ -953,19 +1043,19 @@ rho_integrals_smoothgnd <- function(kappa,
     kappa_pos <- which(kappa == i)
 
     integral_prime <- integrate(rho_prime,
-                                lower = -Inf,
-                                upper = Inf,
-                                kappa = i,
-                                kappa_no_omega = kappa_no_omega[kappa_pos],
-                                tau = tau
+      lower = -Inf,
+      upper = Inf,
+      kappa = i,
+      kappa_no_omega = kappa_no_omega[kappa_pos],
+      tau = tau
     )$value
 
     integral_double_prime <- integrate(rho_double_prime,
-                                       lower = -Inf,
-                                       upper = Inf,
-                                       kappa = i,
-                                       kappa_no_omega = kappa_no_omega[kappa_pos],
-                                       tau = tau
+      lower = -Inf,
+      upper = Inf,
+      kappa = i,
+      kappa_no_omega = kappa_no_omega[kappa_pos],
+      tau = tau
     )$value
 
     rho_prime_vec[kappa_pos] <- integral_prime
@@ -1251,16 +1341,17 @@ likelihood_neg_fixed <- function(theta_estimate, # just coefs to be estimated
     ) # insert value after fix_index - 1 position
   }
 
-  likelihood_neg(theta = theta,
-                 x1 = x1,
-                 x2 = x2,
-                 x3 = x3,
-                 y = y,
-                 tau = tau,
-                 list_general = list_general,
-                 method_c_tilde = method_c_tilde,
-                 kappa_omega = kappa_omega)
-
+  likelihood_neg(
+    theta = theta,
+    x1 = x1,
+    x2 = x2,
+    x3 = x3,
+    y = y,
+    tau = tau,
+    list_general = list_general,
+    method_c_tilde = method_c_tilde,
+    kappa_omega = kappa_omega
+  )
 }
 
 # *** penalized likelihood ------------------------------------------------
@@ -1403,54 +1494,54 @@ nr <- function(theta,
   )
 
   switch(algorithm,
-         "CG" = {
-           W_beta_alpha <- list_deriv$W_beta_alpha(
-             mu,
-             y,
-             phi,
-             kappa,
-             tau
-           ) # true derivatives
+    "CG" = {
+      W_beta_alpha <- list_deriv$W_beta_alpha(
+        mu,
+        y,
+        phi,
+        kappa,
+        tau
+      ) # true derivatives
 
-           W_beta_nu <- list_deriv$W_beta_nu(
-             mu,
-             y,
-             phi,
-             kappa,
-             kappa_no_omega,
-             tau
-           ) # true derivatives
+      W_beta_nu <- list_deriv$W_beta_nu(
+        mu,
+        y,
+        phi,
+        kappa,
+        kappa_no_omega,
+        tau
+      ) # true derivatives
 
-           W_alpha_nu <- list_deriv$W_alpha_nu(
-             mu,
-             y,
-             phi,
-             kappa,
-             kappa_no_omega,
-             tau
-           ) # true derivatives
-         },
-         "cross_zero" = {
-           W_beta_alpha <- rep(0, n) # cross-derivatives = 0 for optimization
+      W_alpha_nu <- list_deriv$W_alpha_nu(
+        mu,
+        y,
+        phi,
+        kappa,
+        kappa_no_omega,
+        tau
+      ) # true derivatives
+    },
+    "cross_zero" = {
+      W_beta_alpha <- rep(0, n) # cross-derivatives = 0 for optimization
 
-           W_beta_nu <- rep(0, n) # cross-derivatives = 0 for optimization
+      W_beta_nu <- rep(0, n) # cross-derivatives = 0 for optimization
 
-           W_alpha_nu <- rep(0, n) # cross-derivatives = 0 for optimization
-         },
-         "RS" = {
-           W_beta_alpha <- rep(0, n) # cross-derivatives = 0 for optimization
+      W_alpha_nu <- rep(0, n) # cross-derivatives = 0 for optimization
+    },
+    "RS" = {
+      W_beta_alpha <- rep(0, n) # cross-derivatives = 0 for optimization
 
-           W_beta_nu <- rep(0, n) # cross-derivatives = 0 for optimization
+      W_beta_nu <- rep(0, n) # cross-derivatives = 0 for optimization
 
-           W_alpha_nu <- list_deriv$W_alpha_nu(
-             mu,
-             y,
-             phi,
-             kappa,
-             kappa_no_omega,
-             tau
-           ) # true derivatives
-         }
+      W_alpha_nu <- list_deriv$W_alpha_nu(
+        mu,
+        y,
+        phi,
+        kappa,
+        kappa_no_omega,
+        tau
+      ) # true derivatives
+    }
   )
 
   # c_tilde --------------------
@@ -1463,71 +1554,71 @@ nr <- function(theta,
   # derivative of log likelihood for c_tilde
   # get values of c_tilde and derivatives using finite_difference approx
   switch(method_c_tilde_deriv,
-         "finite_diff" = {
-           vals_func <- list_deriv[[paste0("vals_", method_c_tilde_deriv)]] # either using finite difference or actual derivatives
-           c_vals <- vals_func( # look up values in table c_tilde
-             kappa = kappa,
-             tau = tau,
-             h_kappa = h_kappa,
-             FUN_c_tilde = c_tilde_func
-           ) # c_tilde, c_tilde_plus, c_tilde_minus for finite difference
+    "finite_diff" = {
+      vals_func <- list_deriv[[paste0("vals_", method_c_tilde_deriv)]] # either using finite difference or actual derivatives
+      c_vals <- vals_func( # look up values in table c_tilde
+        kappa = kappa,
+        tau = tau,
+        h_kappa = h_kappa,
+        FUN_c_tilde = c_tilde_func
+      ) # c_tilde, c_tilde_plus, c_tilde_minus for finite difference
 
-           c_tilde_vec <- c_vals$c_tilde_vec
+      c_tilde_vec <- c_vals$c_tilde_vec
 
-           # c_tilde_prime
-           c_tilde_prime_vec <- c_tilde_prime_func(
-             c_tilde_plus_vec = c_vals$c_tilde_plus_vec,
-             c_tilde_minus_vec = c_vals$c_tilde_minus_vec,
-             h_kappa = h_kappa
-           )
+      # c_tilde_prime
+      c_tilde_prime_vec <- c_tilde_prime_func(
+        c_tilde_plus_vec = c_vals$c_tilde_plus_vec,
+        c_tilde_minus_vec = c_vals$c_tilde_minus_vec,
+        h_kappa = h_kappa
+      )
 
-           # c_tilde_double_prime
-           c_tilde_double_prime_vec <- c_tilde_double_prime_func(
-             c_tilde_vec = c_tilde_vec,
-             c_tilde_plus_vec = c_vals$c_tilde_plus_vec,
-             c_tilde_minus_vec = c_vals$c_tilde_minus_vec,
-             h_kappa = h_kappa
-           )
-         },
-         "numDeriv" = { # get values using grad and hessian functions from numDeriv
-           c_tilde_vec <- c_tilde_func(
-             kappa = kappa,
-             tau = tau
-           )
+      # c_tilde_double_prime
+      c_tilde_double_prime_vec <- c_tilde_double_prime_func(
+        c_tilde_vec = c_tilde_vec,
+        c_tilde_plus_vec = c_vals$c_tilde_plus_vec,
+        c_tilde_minus_vec = c_vals$c_tilde_minus_vec,
+        h_kappa = h_kappa
+      )
+    },
+    "numDeriv" = { # get values using grad and hessian functions from numDeriv
+      c_tilde_vec <- c_tilde_func(
+        kappa = kappa,
+        tau = tau
+      )
 
-           c_tilde_prime_vec <- c_tilde_prime_func(
-             kappa = kappa,
-             tau = tau,
-             FUN_c_tilde = c_tilde_func
-           )
-           c_tilde_double_prime_vec <- c_tilde_double_prime_func(
-             kappa = kappa,
-             tau = tau,
-             FUN_c_tilde = c_tilde_func
-           )
-         },
-         "actual" = { # get values of c_tilde and derivatives using actual
-           vals_func <- list_deriv[[paste0("vals_", method_c_tilde_deriv)]] # either using finite difference or actual derivatives
-           c_vals <- vals_func(
-             kappa = kappa,
-             kappa_no_omega = kappa_no_omega,
-             tau = tau,
-             FUN_c_tilde = c_tilde_func
-           ) # return c_tilde_vec, rho_prime_vec, rho_double_prime_vec
+      c_tilde_prime_vec <- c_tilde_prime_func(
+        kappa = kappa,
+        tau = tau,
+        FUN_c_tilde = c_tilde_func
+      )
+      c_tilde_double_prime_vec <- c_tilde_double_prime_func(
+        kappa = kappa,
+        tau = tau,
+        FUN_c_tilde = c_tilde_func
+      )
+    },
+    "actual" = { # get values of c_tilde and derivatives using actual
+      vals_func <- list_deriv[[paste0("vals_", method_c_tilde_deriv)]] # either using finite difference or actual derivatives
+      c_vals <- vals_func(
+        kappa = kappa,
+        kappa_no_omega = kappa_no_omega,
+        tau = tau,
+        FUN_c_tilde = c_tilde_func
+      ) # return c_tilde_vec, rho_prime_vec, rho_double_prime_vec
 
-           c_tilde_vec <- c_vals$c_tilde_vec
+      c_tilde_vec <- c_vals$c_tilde_vec
 
-           c_tilde_prime_vec <- c_tilde_prime_func(
-             c_tilde_vec = c_tilde_vec,
-             rho_prime_vec = c_vals$rho_prime_vec
-           )
+      c_tilde_prime_vec <- c_tilde_prime_func(
+        c_tilde_vec = c_tilde_vec,
+        rho_prime_vec = c_vals$rho_prime_vec
+      )
 
-           c_tilde_double_prime_vec <- c_tilde_double_prime_func(
-             c_tilde_vec = c_tilde_vec,
-             rho_prime_vec = c_vals$rho_prime_vec,
-             rho_double_prime_vec = c_vals$rho_double_prime_vec
-           )
-         }
+      c_tilde_double_prime_vec <- c_tilde_double_prime_func(
+        c_tilde_vec = c_tilde_vec,
+        rho_prime_vec = c_vals$rho_prime_vec,
+        rho_double_prime_vec = c_vals$rho_double_prime_vec
+      )
+    }
   )
 
   # Get z and W ----
@@ -1742,54 +1833,54 @@ nr_penalty <- function(theta,
   )
 
   switch(algorithm,
-         "CG" = {
-           W_beta_alpha <- list_deriv$W_beta_alpha(
-             mu,
-             y,
-             phi,
-             kappa,
-             tau
-           ) # true derivatives
+    "CG" = {
+      W_beta_alpha <- list_deriv$W_beta_alpha(
+        mu,
+        y,
+        phi,
+        kappa,
+        tau
+      ) # true derivatives
 
-           W_beta_nu <- list_deriv$W_beta_nu(
-             mu,
-             y,
-             phi,
-             kappa,
-             kappa_no_omega,
-             tau
-           ) # true derivatives
+      W_beta_nu <- list_deriv$W_beta_nu(
+        mu,
+        y,
+        phi,
+        kappa,
+        kappa_no_omega,
+        tau
+      ) # true derivatives
 
-           W_alpha_nu <- list_deriv$W_alpha_nu(
-             mu,
-             y,
-             phi,
-             kappa,
-             kappa_no_omega,
-             tau
-           ) # true derivatives
-         },
-         "cross_zero" = {
-           W_beta_alpha <- rep(0, n) # cross-derivatives = 0 for optimization
+      W_alpha_nu <- list_deriv$W_alpha_nu(
+        mu,
+        y,
+        phi,
+        kappa,
+        kappa_no_omega,
+        tau
+      ) # true derivatives
+    },
+    "cross_zero" = {
+      W_beta_alpha <- rep(0, n) # cross-derivatives = 0 for optimization
 
-           W_beta_nu <- rep(0, n) # cross-derivatives = 0 for optimization
+      W_beta_nu <- rep(0, n) # cross-derivatives = 0 for optimization
 
-           W_alpha_nu <- rep(0, n) # cross-derivatives = 0 for optimization
-         },
-         "RS" = {
-           W_beta_alpha <- rep(0, n) # cross-derivatives = 0 for optimization
+      W_alpha_nu <- rep(0, n) # cross-derivatives = 0 for optimization
+    },
+    "RS" = {
+      W_beta_alpha <- rep(0, n) # cross-derivatives = 0 for optimization
 
-           W_beta_nu <- rep(0, n) # cross-derivatives = 0 for optimization
+      W_beta_nu <- rep(0, n) # cross-derivatives = 0 for optimization
 
-           W_alpha_nu <- list_deriv$W_alpha_nu(
-             mu,
-             y,
-             phi,
-             kappa,
-             kappa_no_omega,
-             tau
-           ) # true derivatives
-         }
+      W_alpha_nu <- list_deriv$W_alpha_nu(
+        mu,
+        y,
+        phi,
+        kappa,
+        kappa_no_omega,
+        tau
+      ) # true derivatives
+    }
   )
 
   # c_tilde --------------------
@@ -1803,71 +1894,71 @@ nr_penalty <- function(theta,
   # derivative of log likelihood for c_tilde
   # get values of c_tilde and approximate derivatives using finite diff
   switch(method_c_tilde_deriv,
-         "finite_diff" = {
-           vals_func <- list_deriv[[paste0("vals_", method_c_tilde_deriv)]] # either using finite difference or actual derivatives
-           c_vals <- vals_func( # look up values in table c_tilde
-             kappa = kappa,
-             tau = tau,
-             h_kappa = h_kappa,
-             FUN_c_tilde = c_tilde_func
-           ) # c_tilde, c_tilde_plus, c_tilde_minus for finite difference
+    "finite_diff" = {
+      vals_func <- list_deriv[[paste0("vals_", method_c_tilde_deriv)]] # either using finite difference or actual derivatives
+      c_vals <- vals_func( # look up values in table c_tilde
+        kappa = kappa,
+        tau = tau,
+        h_kappa = h_kappa,
+        FUN_c_tilde = c_tilde_func
+      ) # c_tilde, c_tilde_plus, c_tilde_minus for finite difference
 
-           c_tilde_vec <- c_vals$c_tilde_vec
+      c_tilde_vec <- c_vals$c_tilde_vec
 
-           # c_tilde_prime
-           c_tilde_prime_vec <- c_tilde_prime_func(
-             c_tilde_plus_vec = c_vals$c_tilde_plus_vec,
-             c_tilde_minus_vec = c_vals$c_tilde_minus_vec,
-             h_kappa = h_kappa
-           )
+      # c_tilde_prime
+      c_tilde_prime_vec <- c_tilde_prime_func(
+        c_tilde_plus_vec = c_vals$c_tilde_plus_vec,
+        c_tilde_minus_vec = c_vals$c_tilde_minus_vec,
+        h_kappa = h_kappa
+      )
 
-           # c_tilde_double_prime
-           c_tilde_double_prime_vec <- c_tilde_double_prime_func(
-             c_tilde_vec = c_tilde_vec,
-             c_tilde_plus_vec = c_vals$c_tilde_plus_vec,
-             c_tilde_minus_vec = c_vals$c_tilde_minus_vec,
-             h_kappa = h_kappa
-           )
-         },
-         "numDeriv" = { # get values using grad and hessian functions from numDeriv
-           c_tilde_vec <- c_tilde_func(
-             kappa = kappa,
-             tau = tau
-           )
+      # c_tilde_double_prime
+      c_tilde_double_prime_vec <- c_tilde_double_prime_func(
+        c_tilde_vec = c_tilde_vec,
+        c_tilde_plus_vec = c_vals$c_tilde_plus_vec,
+        c_tilde_minus_vec = c_vals$c_tilde_minus_vec,
+        h_kappa = h_kappa
+      )
+    },
+    "numDeriv" = { # get values using grad and hessian functions from numDeriv
+      c_tilde_vec <- c_tilde_func(
+        kappa = kappa,
+        tau = tau
+      )
 
-           c_tilde_prime_vec <- c_tilde_prime_func(
-             kappa = kappa,
-             tau = tau,
-             FUN_c_tilde = c_tilde_func
-           )
-           c_tilde_double_prime_vec <- c_tilde_double_prime_func(
-             kappa = kappa,
-             tau = tau,
-             FUN_c_tilde = c_tilde_func
-           )
-         },
-         "actual" = { # get values of c_tilde and derivatives using actual
-           vals_func <- list_deriv[[paste0("vals_", method_c_tilde_deriv)]] # either using finite difference or actual derivatives
-           c_vals <- vals_func(
-             kappa = kappa,
-             kappa_no_omega = kappa_no_omega,
-             tau = tau,
-             FUN_c_tilde = c_tilde_func
-           ) # return c_tilde_vec, rho_prime_vec, rho_double_prime_vec
+      c_tilde_prime_vec <- c_tilde_prime_func(
+        kappa = kappa,
+        tau = tau,
+        FUN_c_tilde = c_tilde_func
+      )
+      c_tilde_double_prime_vec <- c_tilde_double_prime_func(
+        kappa = kappa,
+        tau = tau,
+        FUN_c_tilde = c_tilde_func
+      )
+    },
+    "actual" = { # get values of c_tilde and derivatives using actual
+      vals_func <- list_deriv[[paste0("vals_", method_c_tilde_deriv)]] # either using finite difference or actual derivatives
+      c_vals <- vals_func(
+        kappa = kappa,
+        kappa_no_omega = kappa_no_omega,
+        tau = tau,
+        FUN_c_tilde = c_tilde_func
+      ) # return c_tilde_vec, rho_prime_vec, rho_double_prime_vec
 
-           c_tilde_vec <- c_vals$c_tilde_vec
+      c_tilde_vec <- c_vals$c_tilde_vec
 
-           c_tilde_prime_vec <- c_tilde_prime_func(
-             c_tilde_vec = c_tilde_vec,
-             rho_prime_vec = c_vals$rho_prime_vec
-           )
+      c_tilde_prime_vec <- c_tilde_prime_func(
+        c_tilde_vec = c_tilde_vec,
+        rho_prime_vec = c_vals$rho_prime_vec
+      )
 
-           c_tilde_double_prime_vec <- c_tilde_double_prime_func(
-             c_tilde_vec = c_tilde_vec,
-             rho_prime_vec = c_vals$rho_prime_vec,
-             rho_double_prime_vec = c_vals$rho_double_prime_vec
-           )
-         }
+      c_tilde_double_prime_vec <- c_tilde_double_prime_func(
+        c_tilde_vec = c_tilde_vec,
+        rho_prime_vec = c_vals$rho_prime_vec,
+        rho_double_prime_vec = c_vals$rho_double_prime_vec
+      )
+    }
   )
 
   # Get z and W ----
@@ -2123,71 +2214,71 @@ information_matrices_fullopt <- function(theta,
   # derivative of log likelihood for c_tilde
   # get values of c_tilde and derivatives using finite_difference approx
   switch(method_c_tilde_deriv,
-         "finite_diff" = {
-           vals_func <- list_deriv[[paste0("vals_", method_c_tilde_deriv)]] # either using finite difference or actual derivatives
-           c_vals <- vals_func( # look up values in table c_tilde
-             kappa = kappa,
-             tau = tau,
-             h_kappa = h_kappa,
-             FUN_c_tilde = c_tilde_func
-           ) # c_tilde, c_tilde_plus, c_tilde_minus for finite difference
+    "finite_diff" = {
+      vals_func <- list_deriv[[paste0("vals_", method_c_tilde_deriv)]] # either using finite difference or actual derivatives
+      c_vals <- vals_func( # look up values in table c_tilde
+        kappa = kappa,
+        tau = tau,
+        h_kappa = h_kappa,
+        FUN_c_tilde = c_tilde_func
+      ) # c_tilde, c_tilde_plus, c_tilde_minus for finite difference
 
-           c_tilde_vec <- c_vals$c_tilde_vec
+      c_tilde_vec <- c_vals$c_tilde_vec
 
-           # c_tilde_prime
-           c_tilde_prime_vec <- c_tilde_prime_func(
-             c_tilde_plus_vec = c_vals$c_tilde_plus_vec,
-             c_tilde_minus_vec = c_vals$c_tilde_minus_vec,
-             h_kappa = h_kappa
-           )
+      # c_tilde_prime
+      c_tilde_prime_vec <- c_tilde_prime_func(
+        c_tilde_plus_vec = c_vals$c_tilde_plus_vec,
+        c_tilde_minus_vec = c_vals$c_tilde_minus_vec,
+        h_kappa = h_kappa
+      )
 
-           # c_tilde_double_prime
-           c_tilde_double_prime_vec <- c_tilde_double_prime_func(
-             c_tilde_vec = c_tilde_vec,
-             c_tilde_plus_vec = c_vals$c_tilde_plus_vec,
-             c_tilde_minus_vec = c_vals$c_tilde_minus_vec,
-             h_kappa = h_kappa
-           )
-         },
-         "numDeriv" = { # get values using grad and hessian functions from numDeriv
-           c_tilde_vec <- c_tilde_func(
-             kappa = kappa,
-             tau = tau
-           )
+      # c_tilde_double_prime
+      c_tilde_double_prime_vec <- c_tilde_double_prime_func(
+        c_tilde_vec = c_tilde_vec,
+        c_tilde_plus_vec = c_vals$c_tilde_plus_vec,
+        c_tilde_minus_vec = c_vals$c_tilde_minus_vec,
+        h_kappa = h_kappa
+      )
+    },
+    "numDeriv" = { # get values using grad and hessian functions from numDeriv
+      c_tilde_vec <- c_tilde_func(
+        kappa = kappa,
+        tau = tau
+      )
 
-           c_tilde_prime_vec <- c_tilde_prime_func(
-             kappa = kappa,
-             tau = tau,
-             FUN_c_tilde = c_tilde_func
-           )
-           c_tilde_double_prime_vec <- c_tilde_double_prime_func(
-             kappa = kappa,
-             tau = tau,
-             FUN_c_tilde = c_tilde_func
-           )
-         },
-         "actual" = { # get values of c_tilde and derivatives using actual
-           vals_func <- list_deriv[[paste0("vals_", method_c_tilde_deriv)]] # either using finite difference or actual derivatives
-           c_vals <- vals_func(
-             kappa = kappa,
-             kappa_no_omega = kappa_no_omega,
-             tau = tau,
-             FUN_c_tilde = c_tilde_func
-           ) # return c_tilde_vec, rho_prime_vec, rho_double_prime_vec
+      c_tilde_prime_vec <- c_tilde_prime_func(
+        kappa = kappa,
+        tau = tau,
+        FUN_c_tilde = c_tilde_func
+      )
+      c_tilde_double_prime_vec <- c_tilde_double_prime_func(
+        kappa = kappa,
+        tau = tau,
+        FUN_c_tilde = c_tilde_func
+      )
+    },
+    "actual" = { # get values of c_tilde and derivatives using actual
+      vals_func <- list_deriv[[paste0("vals_", method_c_tilde_deriv)]] # either using finite difference or actual derivatives
+      c_vals <- vals_func(
+        kappa = kappa,
+        kappa_no_omega = kappa_no_omega,
+        tau = tau,
+        FUN_c_tilde = c_tilde_func
+      ) # return c_tilde_vec, rho_prime_vec, rho_double_prime_vec
 
-           c_tilde_vec <- c_vals$c_tilde_vec
+      c_tilde_vec <- c_vals$c_tilde_vec
 
-           c_tilde_prime_vec <- c_tilde_prime_func(
-             c_tilde_vec = c_tilde_vec,
-             rho_prime_vec = c_vals$rho_prime_vec
-           )
+      c_tilde_prime_vec <- c_tilde_prime_func(
+        c_tilde_vec = c_tilde_vec,
+        rho_prime_vec = c_vals$rho_prime_vec
+      )
 
-           c_tilde_double_prime_vec <- c_tilde_double_prime_func(
-             c_tilde_vec = c_tilde_vec,
-             rho_prime_vec = c_vals$rho_prime_vec,
-             rho_double_prime_vec = c_vals$rho_double_prime_vec
-           )
-         }
+      c_tilde_double_prime_vec <- c_tilde_double_prime_func(
+        c_tilde_vec = c_tilde_vec,
+        rho_prime_vec = c_vals$rho_prime_vec,
+        rho_double_prime_vec = c_vals$rho_double_prime_vec
+      )
+    }
   )
 
   # W_c_tilde
@@ -2283,33 +2374,33 @@ information_matrices_numDeriv <- function(theta,
   list_general <- list_family$general
 
   observed_information_penalized <- tryCatch(-numDeriv::hessian(likelihood_penalized, # negative second deriv
-                                                                theta,
-                                                                x1 = x1,
-                                                                x2 = x2,
-                                                                x3 = x3,
-                                                                y = y,
-                                                                tau = tau,
-                                                                epsilon = epsilon,
-                                                                list_general = list_general,
-                                                                method_c_tilde = method_c_tilde,
-                                                                kappa_omega = kappa_omega,
-                                                                lambda_beta = lambda_beta,
-                                                                lambda_alpha = lambda_alpha,
-                                                                lambda_nu = lambda_nu
+    theta,
+    x1 = x1,
+    x2 = x2,
+    x3 = x3,
+    y = y,
+    tau = tau,
+    epsilon = epsilon,
+    list_general = list_general,
+    method_c_tilde = method_c_tilde,
+    kappa_omega = kappa_omega,
+    lambda_beta = lambda_beta,
+    lambda_alpha = lambda_alpha,
+    lambda_nu = lambda_nu
   ),
   error = function(err) NA
   )
 
   observed_information_unpenalized <- tryCatch(-numDeriv::hessian(likelihood, # negative second deriv, unpen
-                                                                  theta,
-                                                                  x1 = x1,
-                                                                  x2 = x2,
-                                                                  x3 = x3,
-                                                                  y = y,
-                                                                  tau = tau,
-                                                                  list_general = list_general,
-                                                                  method_c_tilde = method_c_tilde,
-                                                                  kappa_omega = kappa_omega
+    theta,
+    x1 = x1,
+    x2 = x2,
+    x3 = x3,
+    y = y,
+    tau = tau,
+    list_general = list_general,
+    method_c_tilde = method_c_tilde,
+    kappa_omega = kappa_omega
   ),
   error = function(err) NA
   )
@@ -2339,42 +2430,42 @@ information_matrices_choice <- function(optimizer, # change between analytical a
                                         lambda_alpha,
                                         lambda_nu) {
   switch(optimizer,
-         "fullopt" = {
-           info_list <- information_matrices_fullopt(
-             theta = theta,
-             x1 = x1,
-             x2 = x2,
-             x3 = x3,
-             y = y,
-             tau = tau,
-             epsilon = epsilon,
-             list_family = list_family,
-             method_c_tilde = method_c_tilde,
-             method_c_tilde_deriv = method_c_tilde_deriv,
-             h_kappa = h_kappa,
-             kappa_omega = kappa_omega,
-             lambda_beta = lambda_beta,
-             lambda_alpha = lambda_alpha,
-             lambda_nu = lambda_nu
-           )
-         },
-         "nlm" = {
-           info_list <- information_matrices_numDeriv(
-             theta = theta,
-             x1 = x1,
-             x2 = x2,
-             x3 = x3,
-             y = y,
-             tau = tau,
-             epsilon = epsilon,
-             list_family = list_family,
-             method_c_tilde = method_c_tilde,
-             kappa_omega = kappa_omega,
-             lambda_beta = lambda_beta,
-             lambda_alpha = lambda_alpha,
-             lambda_nu = lambda_nu
-           )
-         }
+    "fullopt" = {
+      info_list <- information_matrices_fullopt(
+        theta = theta,
+        x1 = x1,
+        x2 = x2,
+        x3 = x3,
+        y = y,
+        tau = tau,
+        epsilon = epsilon,
+        list_family = list_family,
+        method_c_tilde = method_c_tilde,
+        method_c_tilde_deriv = method_c_tilde_deriv,
+        h_kappa = h_kappa,
+        kappa_omega = kappa_omega,
+        lambda_beta = lambda_beta,
+        lambda_alpha = lambda_alpha,
+        lambda_nu = lambda_nu
+      )
+    },
+    "nlm" = {
+      info_list <- information_matrices_numDeriv(
+        theta = theta,
+        x1 = x1,
+        x2 = x2,
+        x3 = x3,
+        y = y,
+        tau = tau,
+        epsilon = epsilon,
+        list_family = list_family,
+        method_c_tilde = method_c_tilde,
+        kappa_omega = kappa_omega,
+        lambda_beta = lambda_beta,
+        lambda_alpha = lambda_alpha,
+        lambda_nu = lambda_nu
+      )
+    }
   )
   info_list
 }
@@ -2408,8 +2499,8 @@ telescope <- function(theta_init,
 
   t_initial_guess <- theta_init
   t_res_mat <- matrix(NA,
-                      nrow = length(eps_tele_vec),
-                      ncol = (length(t_initial_guess) + 6)
+    nrow = length(eps_tele_vec),
+    ncol = (length(t_initial_guess) + 6)
   )
   colnames(t_res_mat) <- c(
     "epsilon",
@@ -2485,8 +2576,8 @@ telescope_nlm <- function(theta_init,
 
   t_initial_guess <- theta_init
   t_res_mat <- matrix(NA,
-                      nrow = length(eps_tele_vec),
-                      ncol = (length(t_initial_guess) + 6)
+    nrow = length(eps_tele_vec),
+    ncol = (length(t_initial_guess) + 6)
   )
   colnames(t_res_mat) <- c(
     "epsilon",
@@ -2510,47 +2601,47 @@ telescope_nlm <- function(theta_init,
 
     # run depending on stepmax
     switch(stepmax_lgl,
-           "yes_stepmax" = {
-             t_fit <- suppressWarnings({
-               nlm(FUN_nlm, # nlm minimizes -> likelihood_penalized_neg
-                   p = t_initial_guess,
-                   x1 = x1,
-                   x2 = x2,
-                   x3 = x3,
-                   y = y,
-                   tau = tau_val,
-                   epsilon = eps_val,
-                   list_general = list_family$general,
-                   method_c_tilde = method_c_tilde,
-                   kappa_omega = kappa_omega,
-                   lambda_beta = lambda_beta,
-                   lambda_alpha = lambda_alpha,
-                   lambda_nu = lambda_nu,
-                   iterlim = iterlim,
-                   stepmax = stepmax # include stepmax option
-               )
-             })
-           },
-           "no_stepmax" = {
-             t_fit <- suppressWarnings({
-               nlm(FUN_nlm, # nlm minimizes -> likelihood_penalized_neg
-                   p = t_initial_guess,
-                   x1 = x1,
-                   x2 = x2,
-                   x3 = x3,
-                   y = y,
-                   tau = tau_val,
-                   epsilon = eps_val,
-                   list_general = list_family$general,
-                   method_c_tilde = method_c_tilde,
-                   kappa_omega = kappa_omega,
-                   lambda_beta = lambda_beta,
-                   lambda_alpha = lambda_alpha,
-                   lambda_nu = lambda_nu,
-                   iterlim = iterlim
-               )
-             })
-           }
+      "yes_stepmax" = {
+        t_fit <- suppressWarnings({
+          nlm(FUN_nlm, # nlm minimizes -> likelihood_penalized_neg
+            p = t_initial_guess,
+            x1 = x1,
+            x2 = x2,
+            x3 = x3,
+            y = y,
+            tau = tau_val,
+            epsilon = eps_val,
+            list_general = list_family$general,
+            method_c_tilde = method_c_tilde,
+            kappa_omega = kappa_omega,
+            lambda_beta = lambda_beta,
+            lambda_alpha = lambda_alpha,
+            lambda_nu = lambda_nu,
+            iterlim = iterlim,
+            stepmax = stepmax # include stepmax option
+          )
+        })
+      },
+      "no_stepmax" = {
+        t_fit <- suppressWarnings({
+          nlm(FUN_nlm, # nlm minimizes -> likelihood_penalized_neg
+            p = t_initial_guess,
+            x1 = x1,
+            x2 = x2,
+            x3 = x3,
+            y = y,
+            tau = tau_val,
+            epsilon = eps_val,
+            list_general = list_family$general,
+            method_c_tilde = method_c_tilde,
+            kappa_omega = kappa_omega,
+            lambda_beta = lambda_beta,
+            lambda_alpha = lambda_alpha,
+            lambda_nu = lambda_nu,
+            iterlim = iterlim
+          )
+        })
+      }
     )
 
     t_initial_guess <- t_fit$estimate
@@ -2629,48 +2720,48 @@ nlm_fixed <- function(f, # likelihood_penalized_neg_fixed
 
   stepmax_lgl <- ifelse(is.na(stepmax), "no_stepmax", "yes_stepmax")
 
-  switch (stepmax_lgl,
-          "yes_stepmax" = {
-            res <- nlm(f, # likelihood_penalized_neg_fixed - nlm minimizes
-                       p = theta_estimate,
-                       fix_indices = fix_indices,
-                       fix_values = fix_values,
-                       x1 = x1,
-                       x2 = x2,
-                       x3 = x3,
-                       y = y,
-                       tau = tau,
-                       epsilon = epsilon,
-                       list_general = list_general,
-                       method_c_tilde = method_c_tilde,
-                       kappa_omega = kappa_omega,
-                       lambda_beta = lambda_beta,
-                       lambda_alpha = lambda_alpha,
-                       lambda_nu = lambda_nu,
-                       iterlim = iterlim_nlm,
-                       stepmax = stepmax # include stepmax option
-            )
-          },
-          "no_stepmax" = {
-            res <- nlm(f, # likelihood_penalized_neg_fixed - nlm minimizes
-                       p = theta_estimate,
-                       fix_indices = fix_indices,
-                       fix_values = fix_values,
-                       x1 = x1,
-                       x2 = x2,
-                       x3 = x3,
-                       y = y,
-                       tau = tau,
-                       epsilon = epsilon,
-                       list_general = list_general,
-                       method_c_tilde = method_c_tilde,
-                       kappa_omega = kappa_omega,
-                       lambda_beta = lambda_beta,
-                       lambda_alpha = lambda_alpha,
-                       lambda_nu = lambda_nu,
-                       iterlim = iterlim_nlm
-            )
-          }
+  switch(stepmax_lgl,
+    "yes_stepmax" = {
+      res <- nlm(f, # likelihood_penalized_neg_fixed - nlm minimizes
+        p = theta_estimate,
+        fix_indices = fix_indices,
+        fix_values = fix_values,
+        x1 = x1,
+        x2 = x2,
+        x3 = x3,
+        y = y,
+        tau = tau,
+        epsilon = epsilon,
+        list_general = list_general,
+        method_c_tilde = method_c_tilde,
+        kappa_omega = kappa_omega,
+        lambda_beta = lambda_beta,
+        lambda_alpha = lambda_alpha,
+        lambda_nu = lambda_nu,
+        iterlim = iterlim_nlm,
+        stepmax = stepmax # include stepmax option
+      )
+    },
+    "no_stepmax" = {
+      res <- nlm(f, # likelihood_penalized_neg_fixed - nlm minimizes
+        p = theta_estimate,
+        fix_indices = fix_indices,
+        fix_values = fix_values,
+        x1 = x1,
+        x2 = x2,
+        x3 = x3,
+        y = y,
+        tau = tau,
+        epsilon = epsilon,
+        list_general = list_general,
+        method_c_tilde = method_c_tilde,
+        kappa_omega = kappa_omega,
+        lambda_beta = lambda_beta,
+        lambda_alpha = lambda_alpha,
+        lambda_nu = lambda_nu,
+        iterlim = iterlim_nlm
+      )
+    }
   )
 
   # fill in the fixed values so have complete vector returned
@@ -2707,39 +2798,41 @@ nlm_fixed_unpenalized <- function(p, # "initial values" should have the fixed va
   stepmax_lgl <- ifelse(is.na(stepmax), "no_stepmax", "yes_stepmax")
 
   switch(stepmax_lgl,
-         "yes_stepmax" = {
-           res <- nlm(f = likelihood_neg_fixed, # likelihood_neg_fixed - nlm minimizes, unpenalized
-                      p = theta_estimate,
-                      fix_indices = fix_indices,
-                      fix_values = fix_values,
-                      x1 = x1,
-                      x2 = x2,
-                      x3 = x3,
-                      y = y,
-                      tau = tau,
-                      list_general = list_general,
-                      method_c_tilde = method_c_tilde,
-                      kappa_omega = kappa_omega,
-                      iterlim = iterlim_nlm,
-                      stepmax = stepmax # include stepmax option
-           )
-         },
-         "no_stepmax" = {
-           res <- nlm(f = likelihood_neg_fixed, # likelihood_neg_fixed - nlm minimizes, unpenalized
-                      p = theta_estimate,
-                      fix_indices = fix_indices,
-                      fix_values = fix_values,
-                      x1 = x1,
-                      x2 = x2,
-                      x3 = x3,
-                      y = y,
-                      tau = tau,
-                      list_general = list_general,
-                      method_c_tilde = method_c_tilde,
-                      kappa_omega = kappa_omega,
-                      iterlim = iterlim_nlm
-           )
-         }
+    "yes_stepmax" = {
+      res <- nlm(
+        f = likelihood_neg_fixed, # likelihood_neg_fixed - nlm minimizes, unpenalized
+        p = theta_estimate,
+        fix_indices = fix_indices,
+        fix_values = fix_values,
+        x1 = x1,
+        x2 = x2,
+        x3 = x3,
+        y = y,
+        tau = tau,
+        list_general = list_general,
+        method_c_tilde = method_c_tilde,
+        kappa_omega = kappa_omega,
+        iterlim = iterlim_nlm,
+        stepmax = stepmax # include stepmax option
+      )
+    },
+    "no_stepmax" = {
+      res <- nlm(
+        f = likelihood_neg_fixed, # likelihood_neg_fixed - nlm minimizes, unpenalized
+        p = theta_estimate,
+        fix_indices = fix_indices,
+        fix_values = fix_values,
+        x1 = x1,
+        x2 = x2,
+        x3 = x3,
+        y = y,
+        tau = tau,
+        list_general = list_general,
+        method_c_tilde = method_c_tilde,
+        kappa_omega = kappa_omega,
+        iterlim = iterlim_nlm
+      )
+    }
   )
 
   # fill in the fixed values so have complete vector returned
@@ -2779,8 +2872,8 @@ telescope_nlm_fixed <- function(theta_init, # contains fixed values
 
   t_initial_guess <- theta_init
   t_res_mat <- matrix(NA,
-                      nrow = length(eps_tele_vec),
-                      ncol = (length(t_initial_guess) + 6)
+    nrow = length(eps_tele_vec),
+    ncol = (length(t_initial_guess) + 6)
   )
   colnames(t_res_mat) <- c(
     "epsilon",
@@ -2803,22 +2896,22 @@ telescope_nlm_fixed <- function(theta_init, # contains fixed values
 
     t_fit <- suppressWarnings({
       nlm_fixed(likelihood_penalized_neg_fixed, # nlm minimizes -> likelihood_penalized_neg
-                p = t_initial_guess,
-                fix_indices = fix_indices,
-                x1 = x1,
-                x2 = x2,
-                x3 = x3,
-                y = y,
-                tau = tau_val,
-                epsilon = eps_val,
-                list_general = list_family$general,
-                method_c_tilde = method_c_tilde,
-                kappa_omega = kappa_omega,
-                lambda_beta = lambda_beta,
-                lambda_alpha = lambda_alpha,
-                lambda_nu = lambda_nu,
-                iterlim = iterlim,
-                stepmax = stepmax
+        p = t_initial_guess,
+        fix_indices = fix_indices,
+        x1 = x1,
+        x2 = x2,
+        x3 = x3,
+        y = y,
+        tau = tau_val,
+        epsilon = eps_val,
+        list_general = list_family$general,
+        method_c_tilde = method_c_tilde,
+        kappa_omega = kappa_omega,
+        lambda_beta = lambda_beta,
+        lambda_alpha = lambda_alpha,
+        lambda_nu = lambda_nu,
+        iterlim = iterlim,
+        stepmax = stepmax
       )
     })
 
@@ -2862,103 +2955,107 @@ fitting_func_base <- function(x1, # data should be scaled
   eps_tele_vec <- rev(exp(seq(log(epsilon_T), log(epsilon_1), length = steps_T)))
 
   switch(optimizer,
-         "fullopt" = telescope(
-           theta_init = theta_init,
-           FUN_tele = nr_penalty,
-           fix_index = NA, # don't fix any parameters
-           x1 = x1,
-           x2 = x2,
-           x3 = x3,
-           y = y,
-           tau_tele_vec = tau_tele_vec,
-           eps_tele_vec = eps_tele_vec,
-           list_family = list_family,
-           method_c_tilde = method_c_tilde,
-           method_c_tilde_deriv = method_c_tilde_deriv,
-           kappa_omega = kappa_omega,
-           lambda_beta = lambda_beta,
-           lambda_alpha = lambda_alpha,
-           lambda_nu = lambda_nu,
-           initial_step = initial_step,
-           max_step_it = max_step_it,
-           algorithm = algorithm,
-           h_kappa = h_kappa,
-           tol = tol,
-           max_it = max_it
-         ),
-         "nlm" = telescope_nlm(
-           theta_init = theta_init,
-           FUN_nlm = likelihood_penalized_neg,
-           x1 = x1,
-           x2 = x2,
-           x3 = x3,
-           y = y,
-           tau_tele_vec = tau_tele_vec,
-           eps_tele_vec = eps_tele_vec,
-           list_family = list_family,
-           method_c_tilde = method_c_tilde,
-           kappa_omega = kappa_omega,
-           lambda_beta = lambda_beta,
-           lambda_alpha = lambda_alpha,
-           lambda_nu = lambda_nu,
-           iterlim = max_it,
-           stepmax = stepmax_nlm
-         ),
-         "fullopt_fixed_nu" = telescope(
-           theta_init = theta_init, # contains true value for nu
-           FUN_tele = nr_penalty,
-           fix_index = length(theta_init), # fix nu
-           x1 = x1,
-           x2 = x2,
-           x3 = x3,
-           y = y,
-           tau_tele_vec = tau_tele_vec,
-           eps_tele_vec = eps_tele_vec,
-           list_family = list_family,
-           method_c_tilde = method_c_tilde,
-           method_c_tilde_deriv = method_c_tilde_deriv,
-           kappa_omega = kappa_omega,
-           lambda_beta = lambda_beta,
-           lambda_alpha = lambda_alpha,
-           lambda_nu = lambda_nu,
-           initial_step = initial_step,
-           max_step_it = max_step_it,
-           algorithm = algorithm,
-           h_kappa = h_kappa,
-           tol = tol,
-           max_it = max_it
-         ),
-         "nlm_fixed_nu" = telescope_nlm_fixed(
-           theta_init = theta_init, # contains fixed value
-           fix_indices = length(theta_init), # fix nu
-           x1 = x1,
-           x2 = x2,
-           x3 = x3,
-           y = y,
-           tau_tele_vec = tau_tele_vec,
-           eps_tele_vec = eps_tele_vec,
-           list_family = list_family,
-           method_c_tilde = method_c_tilde,
-           kappa_omega = kappa_omega,
-           lambda_beta = lambda_beta,
-           lambda_alpha = lambda_alpha,
-           lambda_nu = lambda_nu,
-           iterlim = max_it,
-           stepmax = stepmax_nlm
-         )
+    "fullopt" = telescope(
+      theta_init = theta_init,
+      FUN_tele = nr_penalty,
+      fix_index = NA, # don't fix any parameters
+      x1 = x1,
+      x2 = x2,
+      x3 = x3,
+      y = y,
+      tau_tele_vec = tau_tele_vec,
+      eps_tele_vec = eps_tele_vec,
+      list_family = list_family,
+      method_c_tilde = method_c_tilde,
+      method_c_tilde_deriv = method_c_tilde_deriv,
+      kappa_omega = kappa_omega,
+      lambda_beta = lambda_beta,
+      lambda_alpha = lambda_alpha,
+      lambda_nu = lambda_nu,
+      initial_step = initial_step,
+      max_step_it = max_step_it,
+      algorithm = algorithm,
+      h_kappa = h_kappa,
+      tol = tol,
+      max_it = max_it
+    ),
+    "nlm" = telescope_nlm(
+      theta_init = theta_init,
+      FUN_nlm = likelihood_penalized_neg,
+      x1 = x1,
+      x2 = x2,
+      x3 = x3,
+      y = y,
+      tau_tele_vec = tau_tele_vec,
+      eps_tele_vec = eps_tele_vec,
+      list_family = list_family,
+      method_c_tilde = method_c_tilde,
+      kappa_omega = kappa_omega,
+      lambda_beta = lambda_beta,
+      lambda_alpha = lambda_alpha,
+      lambda_nu = lambda_nu,
+      iterlim = max_it,
+      stepmax = stepmax_nlm
+    ),
+    "fullopt_fixed_nu" = telescope(
+      theta_init = theta_init, # contains true value for nu
+      FUN_tele = nr_penalty,
+      fix_index = length(theta_init), # fix nu
+      x1 = x1,
+      x2 = x2,
+      x3 = x3,
+      y = y,
+      tau_tele_vec = tau_tele_vec,
+      eps_tele_vec = eps_tele_vec,
+      list_family = list_family,
+      method_c_tilde = method_c_tilde,
+      method_c_tilde_deriv = method_c_tilde_deriv,
+      kappa_omega = kappa_omega,
+      lambda_beta = lambda_beta,
+      lambda_alpha = lambda_alpha,
+      lambda_nu = lambda_nu,
+      initial_step = initial_step,
+      max_step_it = max_step_it,
+      algorithm = algorithm,
+      h_kappa = h_kappa,
+      tol = tol,
+      max_it = max_it
+    ),
+    "nlm_fixed_nu" = telescope_nlm_fixed(
+      theta_init = theta_init, # contains fixed value
+      fix_indices = length(theta_init), # fix nu
+      x1 = x1,
+      x2 = x2,
+      x3 = x3,
+      y = y,
+      tau_tele_vec = tau_tele_vec,
+      eps_tele_vec = eps_tele_vec,
+      list_family = list_family,
+      method_c_tilde = method_c_tilde,
+      kappa_omega = kappa_omega,
+      lambda_beta = lambda_beta,
+      lambda_alpha = lambda_alpha,
+      lambda_nu = lambda_nu,
+      iterlim = max_it,
+      stepmax = stepmax_nlm
+    )
   )
 }
 
 # Extract theta & plike_val -----------------------------------------------
 extract_theta_plike_val <- function(fit_res) {
-  plike_val <- fit_res %>%
-    dplyr::select(plike_val) %>%
-    slice_tail() %>% # take last row
-    pull()
-  theta <- fit_res %>%
-    dplyr::select(contains(c("beta", "alpha", "nu"))) %>%
-    slice_tail() %>% # take last row
-    unlist()
+
+  # last row
+  row_n <- fit_res[nrow(fit_res), ]
+  plike_val <- row_n$plike_val
+
+  colnames_now <- colnames(fit_res)
+
+  # get positions of column names of coefficients
+  pos_extract <- c(grep("beta_", colnames_now),
+                   grep("alpha_", colnames_now),
+                   grep("nu_0", colnames_now))
+  theta <- unlist(row_n[, pos_extract])
 
   list(
     "theta" = theta,
@@ -2978,30 +3075,30 @@ initial_values_func <- function(x1, # data should be scaled already
   p3 <- ncol(x3) - 1
 
   switch(method_initial_values,
-         "lm" = { # kappa init = 2 here for normal values
-           lm_fit <- lm(y ~ x1[, -1]) # remove intercept column
-           lm_coef_sig <- c(
-             unname(lm_fit$coefficients),
-             log((summary(lm_fit)$sigma)^2)
-           )
-           theta_init <- c(lm_coef_sig, rep(0, p2), kappa_to_nu(
-             kappa = 2,
-             kappa_omega = kappa_omega
-           )) # kappa = exp(nu_0) + omega, so then nu_0 = log(kappa - omega)
-           theta_init
-         },
-         "rlm" = {
-           rlm_fit <- rlm(y ~ x1[, -1])
-           rlm_coef_sig <- c(
-             unname(rlm_fit$coefficients),
-             log((summary(rlm_fit)$sigma^2))
-           )
-           theta_init <- c(rlm_coef_sig, rep(0, p2), kappa_to_nu(
-             kappa = 1,
-             kappa_omega = kappa_omega
-           )) # kappa = exp(nu_0) + omega, so then nu_0 = log(kappa - omega)
-           theta_init
-         }
+    "lm" = { # kappa init = 2 here for normal values
+      lm_fit <- lm(y ~ x1[, -1]) # remove intercept column
+      lm_coef_sig <- c(
+        unname(lm_fit$coefficients),
+        log((summary(lm_fit)$sigma)^2)
+      )
+      theta_init <- c(lm_coef_sig, rep(0, p2), kappa_to_nu(
+        kappa = 2,
+        kappa_omega = kappa_omega
+      )) # kappa = exp(nu_0) + omega, so then nu_0 = log(kappa - omega)
+      theta_init
+    },
+    "rlm" = {
+      rlm_fit <- rlm(y ~ x1[, -1])
+      rlm_coef_sig <- c(
+        unname(rlm_fit$coefficients),
+        log((summary(rlm_fit)$sigma^2))
+      )
+      theta_init <- c(rlm_coef_sig, rep(0, p2), kappa_to_nu(
+        kappa = 1,
+        kappa_omega = kappa_omega
+      )) # kappa = exp(nu_0) + omega, so then nu_0 = log(kappa - omega)
+      theta_init
+    }
   )
 }
 
@@ -3056,57 +3153,57 @@ fitting_func_complete <- function(x1_raw, # unscaled data
   }
 
   switch(type,
-         "mpr_equal" = {
-           ## Scale X ----
-           x_scale <- scale(x1_raw[, -1],
-                            center = FALSE,
-                            scale = apply(x1_raw[, -1], 2, sd)
-           )
-           x_scale <- cbind(rep(1, n), x_scale) # column of 1's for intercept
-           x_sd <- apply(x1_raw[, -1], 2, sd) # save sd for later to transform back
+    "mpr_equal" = {
+      ## Scale X ----
+      x_scale <- scale(x1_raw[, -1],
+        center = FALSE,
+        scale = apply(x1_raw[, -1], 2, sd)
+      )
+      x_scale <- cbind(rep(1, n), x_scale) # column of 1's for intercept
+      x_sd <- apply(x1_raw[, -1], 2, sd) # save sd for later to transform back
 
-           x_sd_theta <- c(1, x_sd, 1, x_sd, 1)
+      x_sd_theta <- c(1, x_sd, 1, x_sd, 1)
 
-           x1 <- x_scale
-           x2 <- x_scale
-           x3 <- x3_raw
-         },
-         "mpr_diff" = {
-           ## Scale both X matrices ---
-           x1_scale <- scale(x1_raw[, -1],
-                             center = FALSE,
-                             scale = apply(x1_raw[, -1], 2, sd)
-           )
-           x1_scale <- cbind(rep(1, n), x1_scale) # column of 1's for intercept
-           x1_sd <- apply(x1_raw[, -1], 2, sd) # save sd for later to transform back
+      x1 <- x_scale
+      x2 <- x_scale
+      x3 <- x3_raw
+    },
+    "mpr_diff" = {
+      ## Scale both X matrices ---
+      x1_scale <- scale(x1_raw[, -1],
+        center = FALSE,
+        scale = apply(x1_raw[, -1], 2, sd)
+      )
+      x1_scale <- cbind(rep(1, n), x1_scale) # column of 1's for intercept
+      x1_sd <- apply(x1_raw[, -1], 2, sd) # save sd for later to transform back
 
-           x2_scale <- scale(x2_raw[, -1],
-                             center = FALSE,
-                             scale = apply(x2_raw[, -1], 2, sd)
-           )
-           x2_scale <- cbind(rep(1, n), x2_scale) # column of 1's for intercept
-           x2_sd <- apply(x2_raw[, -1], 2, sd) # save sd for later to transform back
+      x2_scale <- scale(x2_raw[, -1],
+        center = FALSE,
+        scale = apply(x2_raw[, -1], 2, sd)
+      )
+      x2_scale <- cbind(rep(1, n), x2_scale) # column of 1's for intercept
+      x2_sd <- apply(x2_raw[, -1], 2, sd) # save sd for later to transform back
 
-           x_sd_theta <- c(1, x1_sd, 1, x2_sd, 1)
-           x1 <- x1_scale
-           x2 <- x2_scale
-           x3 <- x3_raw
-         },
-         "spr" = {
-           ## Scale X ----
-           x_scale <- scale(x1_raw[, -1],
-                            center = FALSE,
-                            scale = apply(x1_raw[, -1], 2, sd)
-           )
-           x_scale <- cbind(rep(1, n), x_scale) # column of 1's for intercept
-           x_sd <- apply(x1_raw[, -1], 2, sd) # save sd for later to transform back
+      x_sd_theta <- c(1, x1_sd, 1, x2_sd, 1)
+      x1 <- x1_scale
+      x2 <- x2_scale
+      x3 <- x3_raw
+    },
+    "spr" = {
+      ## Scale X ----
+      x_scale <- scale(x1_raw[, -1],
+        center = FALSE,
+        scale = apply(x1_raw[, -1], 2, sd)
+      )
+      x_scale <- cbind(rep(1, n), x_scale) # column of 1's for intercept
+      x_sd <- apply(x1_raw[, -1], 2, sd) # save sd for later to transform back
 
-           x_sd_theta <- c(1, x_sd, 1, 1)
+      x_sd_theta <- c(1, x_sd, 1, 1)
 
-           x1 <- x_scale
-           x2 <- x2_raw
-           x3 <- x3_raw
-         }
+      x1 <- x_scale
+      x2 <- x2_raw
+      x3 <- x3_raw
+    }
   )
 
   # Initial Values ----
@@ -3186,49 +3283,8 @@ fitting_func_complete <- function(x1_raw, # unscaled data
 }
 
 # get thetas from dataf ---------------------------------------------------
-get_thetas_list_df <- function(fit,
-                               df) { # all_thetas_dataf
-  df %>%
-    filter(fit_type == fit) %>%
-    select(-sim_id, -fit_type, -sample_kappa_index, -kappa_est) %>%
-    group_by(sample_size) %>%
-    group_split(.keep = FALSE) %>%
-    map(~ {
-      .x %>%
-        group_by(kappa_index) %>%
-        group_split(.keep = FALSE) %>%
-        map(~ as_tibble(t(.x)))
-    })
-}
-
 get_see_now <- function(info_list) {
   inv_pen <- solve(info_list$observed_information_penalized)
 
   sqrt(diag(inv_pen %*% info_list$observed_information_unpenalized %*% inv_pen))
-}
-
-# Data Specific -----------------------------------------------------------
-info_criterion_sgnd <- function(theta, # smooth gnd
-                                x1,
-                                x2,
-                                x3,
-                                y,
-                                tau,
-                                list_general,
-                                method_c_tilde,
-                                kappa_omega,
-                                df,
-                                lambda) {
-  n <- nrow(x1)
-  lambda <- eval(parse(text = lambda))
-
-  (-2 * likelihood(theta = theta,
-                   x1 = x1,
-                   x2 = x2,
-                   x3 = x3,
-                   y = y,
-                   tau = tau,
-                   list_general = list_general,
-                   method_c_tilde = method_c_tilde,
-                   kappa_omega = kappa_omega)) + (lambda * (df + 3)) # + 3 for estimate of intercepts (beta, alpha, nu)
 }

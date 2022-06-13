@@ -57,24 +57,21 @@ fit1 <- smoothic(formula = y_raw ~ .,
                 family = "sgnd",
                 optimizer = "nlm")
 
-out
+fit1
 
 
 fit_sniffer <- smoothic(formula = y ~ .,
                         data = sniffer,
-                        model = "mpr",
+                        model = "spr",
                         lambda = "log(n)",
                         epsilon_1 = 10,
                         epsilon_T = 1e-5,
                         steps_T = 100,
                         zero_tol = 1e-8,
                         max_it = 1e4,
-                        family = "sgnd",
+                        family = "normal",
                         optimizer = "manual",
                         tau = 0.001,
-                        tol = 1e-8,
-                        initial_step = 10,
-                        max_step_it = 1000,
                         kappa = 1.5)
 
 fit_hprice <- smoothic(formula = lprice ~ .,
@@ -92,3 +89,18 @@ fit_hprice <- smoothic(formula = lprice ~ .,
                         tol = 1e-8,
                         initial_step = 10,
                         max_step_it = 1000)
+
+
+formula;
+data;
+model = "mpr";
+lambda = "log(n)";
+epsilon_1 = 0.3;
+epsilon_T = 1e-4;
+steps_T = 100;
+zero_tol = 1e-5;
+max_it = 1e4;
+family = "sgnd";
+optimizer = "nlm";
+kappa; # if missing then it is estimated
+tau
