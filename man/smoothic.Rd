@@ -51,7 +51,7 @@ optimization is terminated. Defaults to \code{1e+04}.}
 \item{family}{The family of the model, default is \code{family = "sgnd"} for the
 "Smooth Generalized Distribution" where the shape parameter kappa is also
 estimated. Classical regression with normally distributed errors is performed
-when \code{family = "normal"}. If \code{family = "laplace}, this corresponds to
+when \code{family = "normal"}. If \code{family = "laplace"}, this corresponds to
 a robust regression with errors from the Laplace distribution.}
 
 \item{optimizer}{The optimization procedure to be used. Defaults to
@@ -95,7 +95,7 @@ results <- smoothic(
   formula = y ~ .,
   data = sniffer,
   model = "mpr",
-  family = "sgnd"
+  family = "normal"
 )
 summary(results)
 }

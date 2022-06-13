@@ -29,7 +29,7 @@
 #' @param family The family of the model, default is \code{family = "sgnd"} for the
 #' "Smooth Generalized Distribution" where the shape parameter kappa is also
 #' estimated. Classical regression with normally distributed errors is performed
-#' when \code{family = "normal"}. If \code{family = "laplace}, this corresponds to
+#' when \code{family = "normal"}. If \code{family = "laplace"}, this corresponds to
 #' a robust regression with errors from the Laplace distribution.
 #' @param optimizer The optimization procedure to be used. Defaults to
 #' \code{optimizer = "nlm"}, where the \code{\link{nlm}} function from the
@@ -70,12 +70,12 @@
 #'   formula = y ~ .,
 #'   data = sniffer,
 #'   model = "mpr",
-#'   family = "sgnd"
+#'   family = "normal"
 #' )
 #' summary(results)
 #' @importFrom stats sd lm model.matrix model.frame model.extract nlm integrate
 #' @importFrom MASS rlm
-#' @importFrom dplyr select slice_tail pull
+#' @importFrom numDeriv grad hessian
 #'
 #' @export
 
@@ -2864,7 +2864,7 @@ telescope_nlm_fixed <- function(theta_init, # contains fixed values
                                 lambda_beta,
                                 lambda_alpha,
                                 lambda_nu,
-                                iterlim,
+                                iterlim_nlm,
                                 stepmax) {
   p1 <- ncol(x1) - 1 # important for getting dimensions of the output matrix
   p2 <- ncol(x2) - 1
@@ -2910,7 +2910,7 @@ telescope_nlm_fixed <- function(theta_init, # contains fixed values
         lambda_beta = lambda_beta,
         lambda_alpha = lambda_alpha,
         lambda_nu = lambda_nu,
-        iterlim = iterlim,
+        iterlim_nlm = iterlim_nlm,
         stepmax = stepmax
       )
     })
@@ -2918,7 +2918,7 @@ telescope_nlm_fixed <- function(theta_init, # contains fixed values
     t_initial_guess <- t_fit$estimate
     steps_full <- 0 # 1 if true, 0 if false (just set to zero for nlm as not dealing with step halving)
 
-    it_full <- ifelse(t_fit$iterations == iterlim, 1, 0)
+    it_full <- ifelse(t_fit$iterations == iterlim_nlm, 1, 0)
 
     t_res_mat[pos, ] <- c(eps_val, tau_val, t_fit$estimate, -t_fit$minimum, steps_full, it_full, t_fit$iterations) # multiply plike_val by -1 (ie turn minumum into maximum)
   }
@@ -3036,7 +3036,7 @@ fitting_func_base <- function(x1, # data should be scaled
       lambda_beta = lambda_beta,
       lambda_alpha = lambda_alpha,
       lambda_nu = lambda_nu,
-      iterlim = max_it,
+      iterlim_nlm = max_it,
       stepmax = stepmax_nlm
     )
   )
@@ -3099,186 +3099,6 @@ initial_values_func <- function(x1, # data should be scaled already
       )) # kappa = exp(nu_0) + omega, so then nu_0 = log(kappa - omega)
       theta_init
     }
-  )
-}
-
-# wrapper fitting function ------------------------------------------------
-fitting_func_complete <- function(x1_raw, # unscaled data
-                                  x2_raw,
-                                  x3_raw,
-                                  y,
-                                  method_initial_values,
-                                  other_initial_values_vec,
-                                  fix_nu_value_init,
-                                  optimizer,
-                                  iterlim_nlm,
-                                  stepmax_nlm,
-                                  nu_profile_vec,
-                                  theta_init,
-                                  tau_1,
-                                  tau_T,
-                                  epsilon_1,
-                                  epsilon_T,
-                                  steps_T,
-                                  list_family,
-                                  method_c_tilde,
-                                  method_c_tilde_deriv,
-                                  algorithm,
-                                  h_kappa,
-                                  kappa_omega,
-                                  lambda_beta,
-                                  lambda_alpha,
-                                  lambda_nu,
-                                  initial_step,
-                                  max_step_it,
-                                  tol,
-                                  max_it) {
-  # Scale data depending on setting -----------------------
-  # mpr_equal if x1 and x2 identical ----
-  # mpr_diff if x1 not identical to x2 and ncol(x2) > 1 ----
-  # spr if ncol(x2 == 1) ----
-  stopifnot(ncol(x3_raw) == 1)
-
-  n <- nrow(x1_raw)
-
-  identical_lgl <- identical(x1_raw, x2_raw)
-  ncol_x2_raw <- ncol(x2_raw)
-
-  if (identical_lgl == TRUE) {
-    type <- "mpr_equal"
-  } else if (identical_lgl == FALSE & ncol_x2_raw > 1) {
-    type <- "mpr_diff"
-  } else if (ncol_x2_raw == 1) {
-    type <- "spr"
-  }
-
-  switch(type,
-    "mpr_equal" = {
-      ## Scale X ----
-      x_scale <- scale(x1_raw[, -1],
-        center = FALSE,
-        scale = apply(x1_raw[, -1], 2, sd)
-      )
-      x_scale <- cbind(rep(1, n), x_scale) # column of 1's for intercept
-      x_sd <- apply(x1_raw[, -1], 2, sd) # save sd for later to transform back
-
-      x_sd_theta <- c(1, x_sd, 1, x_sd, 1)
-
-      x1 <- x_scale
-      x2 <- x_scale
-      x3 <- x3_raw
-    },
-    "mpr_diff" = {
-      ## Scale both X matrices ---
-      x1_scale <- scale(x1_raw[, -1],
-        center = FALSE,
-        scale = apply(x1_raw[, -1], 2, sd)
-      )
-      x1_scale <- cbind(rep(1, n), x1_scale) # column of 1's for intercept
-      x1_sd <- apply(x1_raw[, -1], 2, sd) # save sd for later to transform back
-
-      x2_scale <- scale(x2_raw[, -1],
-        center = FALSE,
-        scale = apply(x2_raw[, -1], 2, sd)
-      )
-      x2_scale <- cbind(rep(1, n), x2_scale) # column of 1's for intercept
-      x2_sd <- apply(x2_raw[, -1], 2, sd) # save sd for later to transform back
-
-      x_sd_theta <- c(1, x1_sd, 1, x2_sd, 1)
-      x1 <- x1_scale
-      x2 <- x2_scale
-      x3 <- x3_raw
-    },
-    "spr" = {
-      ## Scale X ----
-      x_scale <- scale(x1_raw[, -1],
-        center = FALSE,
-        scale = apply(x1_raw[, -1], 2, sd)
-      )
-      x_scale <- cbind(rep(1, n), x_scale) # column of 1's for intercept
-      x_sd <- apply(x1_raw[, -1], 2, sd) # save sd for later to transform back
-
-      x_sd_theta <- c(1, x_sd, 1, 1)
-
-      x1 <- x_scale
-      x2 <- x2_raw
-      x3 <- x3_raw
-    }
-  )
-
-  # Initial Values ----
-  theta_init <- initial_values_func(
-    x1 = x1,
-    x2 = x2,
-    x3 = x3,
-    y = y,
-    method_initial_values = method_initial_values,
-    other_initial_values_vec = other_initial_values_vec,
-    kappa_omega = kappa_omega,
-    fix_nu_value_init = fix_nu_value_init,
-    tau = tau_1,
-    epsilon_1 = epsilon_1,
-    iterlim_nlm = iterlim_nlm,
-    stepmax_nlm = stepmax_nlm,
-    list_family = list_family,
-    method_c_tilde = method_c_tilde,
-    method_c_tilde_deriv = method_c_tilde_deriv,
-    algorithm = algorithm,
-    h_kappa = h_kappa,
-    lambda_beta = lambda_beta,
-    lambda_alpha = lambda_alpha,
-    lambda_nu = lambda_nu,
-    initial_step = initial_step,
-    max_step_it = max_step_it,
-    tol = tol,
-    max_it = max_it
-  )
-  ## Fit ----
-  fit_res <- fitting_func_base(
-    x1 = x1,
-    x2 = x2,
-    x3 = x3,
-    y = y,
-    optimizer = optimizer,
-    iterlim_nlm = iterlim_nlm,
-    stepmax_nlm = stepmax_nlm,
-    nu_profile_vec = nu_profile_vec,
-    theta_init = theta_init,
-    tau_1 = tau_1,
-    tau_T = tau_T,
-    epsilon_1 = epsilon_1,
-    epsilon_T = epsilon_T,
-    steps_T = steps_T,
-    list_family = list_family,
-    method_c_tilde = method_c_tilde,
-    method_c_tilde_deriv = method_c_tilde_deriv,
-    algorithm = algorithm,
-    h_kappa = h_kappa,
-    kappa_omega = kappa_omega,
-    lambda_beta = lambda_beta,
-    lambda_alpha = lambda_alpha,
-    lambda_nu = lambda_nu,
-    initial_step = initial_step,
-    max_step_it = max_step_it,
-    tol = tol,
-    max_it = max_it
-  )
-  ## Extract estimate ----
-  extract_res <- extract_theta_plike_val(
-    fit_res = fit_res,
-    optimizer = optimizer
-  )
-  theta_scale <- extract_res$theta
-  theta <- as.vector(theta_scale / x_sd_theta)
-
-  list(
-    "theta" = theta,
-    "plike_val" = extract_res$plike_val,
-    "call" = c(
-      method_initial_values,
-      optimizer,
-      method_c_tilde
-    )
   )
 }
 
