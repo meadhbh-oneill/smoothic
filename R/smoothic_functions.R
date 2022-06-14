@@ -40,7 +40,7 @@
 #' to this value in the optimization. If not supplied, kappa is estimated from the data.
 #' @param tau Optional user-supplied positive smoothing parameter value in the
 #' "Smooth Generalized Normal Distribution". If not supplied, then \code{tau = "0.15"}
-#' when \code{family = "sgnd"} or \code{"laplace"} and \code{tau = "0.01"} when
+#' when \code{family = "sgnd"} or \code{"laplace"} and \code{tau = "0.05"} when
 #' \code{family = "normal"}. Smaller values of \code{tau} bring the approximation
 #' closer to the absolute value function, but this can cause the optimization to become
 #' unstable. Some issues with standard error calculation with smaller values of
@@ -189,7 +189,7 @@ smoothic <- function(formula,
   if (missing(tau)) { # if tau not supplied, then make value
     switch(family,
       "normal" = {
-        tau <- 0.01
+        tau <- 0.05
       },
       "sgnd" = {
         tau <- 0.15
