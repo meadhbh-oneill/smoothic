@@ -17,7 +17,8 @@ smoothic(
   family = "sgnd",
   optimizer = "nlm",
   kappa,
-  tau
+  tau,
+  stepmax_nlm
 )
 }
 \arguments{
@@ -70,6 +71,10 @@ when \code{family = "sgnd"} or \code{"laplace"} and \code{tau = "0.01"} when
 closer to the absolute value function, but this can cause the optimization to become
 unstable. Some issues with standard error calculation with smaller values of
 \code{tau} when using the Laplace distribution in the robust regression setting.}
+
+\item{stepmax_nlm}{Optional maximum allowable scaled step length (positive scalar) to be passed to
+\code{\link{nlm}} if \code{optimizer = "nlm"}. If not supplied, default values in
+\code{\link{nlm}} are used.}
 }
 \value{
 A list with estimates and estimated standard errors.

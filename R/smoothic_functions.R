@@ -45,6 +45,10 @@
 #' closer to the absolute value function, but this can cause the optimization to become
 #' unstable. Some issues with standard error calculation with smaller values of
 #' \code{tau} when using the Laplace distribution in the robust regression setting.
+#' @param stepmax_nlm Optional maximum allowable scaled step length (positive scalar) to be passed to
+#' \code{\link{nlm}} if \code{optimizer = "nlm"}. If not supplied, default values in
+#' \code{\link{nlm}} are used.
+#'
 #'
 #' @return A list with estimates and estimated standard errors.
 #' \itemize{
@@ -91,7 +95,8 @@ smoothic <- function(formula,
                      family = "sgnd",
                      optimizer = "nlm",
                      kappa, # if missing then it is estimated
-                     tau # if missing and sgnd then set to 0.15, if normal 0.01 or laplace 0.15
+                     tau, # if missing and sgnd then set to 0.15, if normal 0.01 or laplace 0.15
+                     stepmax_nlm # if missing then uses nlm defaults
 ) {
   cl <- match.call()
 
@@ -195,6 +200,16 @@ smoothic <- function(formula,
     )
   }
 
+  if(!missing(stepmax_nlm)) {
+    if (!(stepmax_nlm > 0)) {
+      stop("Error: stepmax_nlm must be a positive scalar")
+    }
+  }
+
+  if(missing(stepmax_nlm)) { # if not supplied, then set to NA so default values are used in nlm function
+    stepmax_nlm <- NA
+  }
+
   kappa_omega <- 0.2
 
   # Fit model ----
@@ -213,7 +228,8 @@ smoothic <- function(formula,
     kappa = kappa,
     tau = tau,
     fix_kappa_lgl = fix_kappa_lgl,
-    kappa_omega = kappa_omega
+    kappa_omega = kappa_omega,
+    stepmax_nlm = stepmax_nlm
   )
 
   # Estimates ----
@@ -429,9 +445,9 @@ fitting_func_pkg <- function(x1,
                              tau,
                              fix_kappa_lgl,
                              kappa_omega,
-                             method_c_tilde = "integrate",
                              # nlm
-                             stepmax_nlm = NA,
+                             stepmax_nlm,
+                             method_c_tilde = "integrate",
                              # manual
                              tol = 1e-8,
                              initial_step = 10,
