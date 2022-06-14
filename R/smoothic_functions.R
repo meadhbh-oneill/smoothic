@@ -74,7 +74,8 @@
 #'   formula = y ~ .,
 #'   data = sniffer,
 #'   model = "mpr",
-#'   family = "normal"
+#'   family = "normal",
+#'   tau = 0.15
 #' )
 #' summary(results)
 #' @importFrom stats sd lm model.matrix model.frame model.extract nlm integrate
