@@ -304,8 +304,8 @@ smoothic <- function(formula,
   out <- list(
     "coefficients" = theta,
     "see" = see,
-    "model" = model,
     "family" = family,
+    "model" = model,
     "plike" = fit_out$plike_val,
     "kappa" = kappa_val,
     "tau" = tau,
@@ -395,11 +395,11 @@ summary.smoothic <- function(object, ...) {
   )
 
   out <- list(
+    family = object$family,
     model = object$model,
     coefmat = coefmat,
     plike = unname(object$plike),
-    call = object$call,
-    family = object$family
+    call = object$call
   )
   class(out) <- "summary.smoothic"
   out
@@ -411,10 +411,10 @@ summary.smoothic <- function(object, ...) {
 print.smoothic <- function(x, ...) {
   cat("Call:\n")
   print(x$call)
-  cat("Model:\n")
-  print(x$model)
   cat("Family:\n")
   print(x$family)
+  cat("Model:\n")
+  print(x$model)
 
   kappa_lgl <- ifelse(x$family == "sgnd", "yes_kappa", "no_kappa")
 
@@ -440,6 +440,8 @@ print.smoothic <- function(x, ...) {
 print.summary.smoothic <- function(x, ...) {
   cat("Call:\n")
   print(x$call)
+  cat("Family:\n")
+  print(x$family)
   cat("Model:\n")
   print(x$model)
 
