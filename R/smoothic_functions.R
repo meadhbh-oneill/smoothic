@@ -3553,9 +3553,9 @@ fitting_func_normal <- function(x1,
   p2 <- ncol(x2) - 1
 
   lm_fit <- lm(y ~ x1[, -1])
-  lm_coef <- coef(lm_fit)
+  lm_coef <- lm_fit$coefficients
   lm_coef_sig <- c(
-    unname(coef(lm_fit)),
+    unname(lm_coef),
     log((summary(lm_fit)$sigma)^2)
   )
   theta_init <- c(lm_coef_sig, rep(0, p2))

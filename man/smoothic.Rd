@@ -7,6 +7,7 @@
 smoothic(
   formula,
   data,
+  family = "sgnd",
   model = "mpr",
   lambda = "log(n)",
   epsilon_1 = 0.3,
@@ -14,7 +15,6 @@ smoothic(
   steps_T = 100,
   zero_tol = 1e-05,
   max_it = 10000,
-  family = "sgnd",
   optimizer = "nlm",
   kappa,
   tau,
@@ -27,6 +27,12 @@ with response on the left hand side and the model variables on the right hand si
 
 \item{data}{A data frame containing the variables in the model; the data frame
 should be unstandardized.}
+
+\item{family}{The family of the model, default is \code{family = "sgnd"} for the
+"Smooth Generalized Distribution" where the shape parameter kappa is also
+estimated. Classical regression with normally distributed errors is performed
+when \code{family = "normal"}. If \code{family = "laplace"}, this corresponds to
+a robust regression with errors from the Laplace distribution.}
 
 \item{model}{The type of regression to be implemented, either \code{model = "mpr"}
 for multi-parameter regression, or \code{model = "spr"} for single parameter
@@ -49,28 +55,23 @@ Defaults to \code{1e-05}.}
 \item{max_it}{Maximum number of iterations to performed before the
 optimization is terminated. Defaults to \code{1e+04}.}
 
-\item{family}{The family of the model, default is \code{family = "sgnd"} for the
-"Smooth Generalized Distribution" where the shape parameter kappa is also
-estimated. Classical regression with normally distributed errors is performed
-when \code{family = "normal"}. If \code{family = "laplace"}, this corresponds to
-a robust regression with errors from the Laplace distribution.}
-
 \item{optimizer}{The optimization procedure to be used. Defaults to
 \code{optimizer = "nlm"}, where the \code{\link{nlm}} function from the
 \bold{stats} package is used. This tends to be more stable than the manually
  coded Newton-Raphson procedure that is used when \code{optimizer = "manual"}.}
 
 \item{kappa}{Optional user-supplied positive kappa value (> 0.2 to avoid
-computational issues). If supplied, the shape parameter kappa will be fixed
-to this value in the optimization. If not supplied, kappa is estimated from the data.}
+computational issues) if \code{family = "sgnd"}. If supplied, the shape parameter
+kappa will be fixed to this value in the optimization. If not supplied, kappa is
+estimated from the data.}
 
 \item{tau}{Optional user-supplied positive smoothing parameter value in the
-"Smooth Generalized Normal Distribution". If not supplied, then \code{tau = "0.15"}
-when \code{family = "sgnd"} or \code{"laplace"} and \code{tau = "0.05"} when
-\code{family = "normal"}. Smaller values of \code{tau} bring the approximation
-closer to the absolute value function, but this can cause the optimization to become
-unstable. Some issues with standard error calculation with smaller values of
-\code{tau} when using the Laplace distribution in the robust regression setting.}
+"Smooth Generalized Normal Distribution" if \code{family = "sgnd"} or
+\code{family = "laplace"}. If not supplied, then \code{tau = "0.15"}.
+Smaller values of \code{tau} bring the approximation closer to the absolute value
+function, but this can cause the optimization to become unstable. Some issues with
+standard error calculation with smaller values of \code{tau} when using the Laplace
+distribution in the robust regression setting.}
 
 \item{stepmax_nlm}{Optional maximum allowable scaled step length (positive scalar) to be passed to
 \code{\link{nlm}} if \code{optimizer = "nlm"}. If not supplied, default values in
@@ -99,9 +100,8 @@ the final estimates are converted back to their original scale.
 results <- smoothic(
   formula = y ~ .,
   data = sniffer,
-  model = "mpr",
   family = "normal",
-  tau = 0.15
+  model = "mpr"
 )
 summary(results)
 }
