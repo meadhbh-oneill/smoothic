@@ -11,7 +11,11 @@
 #'
 #' @param data A data frame containing the variables in the model; the data frame
 #' should be unstandardized.
-#'
+#' @param family The family of the model, default is \code{family = "sgnd"} for the
+#' "Smooth Generalized Distribution" where the shape parameter kappa is also
+#' estimated. Classical regression with normally distributed errors is performed
+#' when \code{family = "normal"}. If \code{family = "laplace"}, this corresponds to
+#' a robust regression with errors from the Laplace distribution.
 #' @param model The type of regression to be implemented, either \code{model = "mpr"}
 #' for multi-parameter regression, or \code{model = "spr"} for single parameter
 #' regression (i.e., classical normal linear regression). Defaults to \code{model="mpr"}.
@@ -36,15 +40,16 @@
 #' \bold{stats} package is used. This tends to be more stable than the manually
 #'  coded Newton-Raphson procedure that is used when \code{optimizer = "manual"}.
 #' @param kappa Optional user-supplied positive kappa value (> 0.2 to avoid
-#' computational issues). If supplied, the shape parameter kappa will be fixed
-#' to this value in the optimization. If not supplied, kappa is estimated from the data.
+#' computational issues) if \code{family = "sgnd"}. If supplied, the shape parameter
+#' kappa will be fixed to this value in the optimization. If not supplied, kappa is
+#' estimated from the data.
 #' @param tau Optional user-supplied positive smoothing parameter value in the
-#' "Smooth Generalized Normal Distribution". If not supplied, then \code{tau = "0.15"}
-#' when \code{family = "sgnd"} or \code{"laplace"} and \code{tau = "0.05"} when
-#' \code{family = "normal"}. Smaller values of \code{tau} bring the approximation
-#' closer to the absolute value function, but this can cause the optimization to become
-#' unstable. Some issues with standard error calculation with smaller values of
-#' \code{tau} when using the Laplace distribution in the robust regression setting.
+#' "Smooth Generalized Normal Distribution" if \code{family = "sgnd"} or
+#' \code{family = "laplace"}. If not supplied, then \code{tau = "0.15"}.
+#' Smaller values of \code{tau} bring the approximation closer to the absolute value
+#' function, but this can cause the optimization to become unstable. Some issues with
+#' standard error calculation with smaller values of \code{tau} when using the Laplace
+#' distribution in the robust regression setting.
 #' @param stepmax_nlm Optional maximum allowable scaled step length (positive scalar) to be passed to
 #' \code{\link{nlm}} if \code{optimizer = "nlm"}. If not supplied, default values in
 #' \code{\link{nlm}} are used.
@@ -73,9 +78,8 @@
 #' results <- smoothic(
 #'   formula = y ~ .,
 #'   data = sniffer,
-#'   model = "mpr",
 #'   family = "normal",
-#'   tau = 0.15
+#'   model = "mpr"
 #' )
 #' summary(results)
 #' @importFrom stats sd lm model.matrix model.frame model.extract nlm integrate
@@ -86,6 +90,7 @@
 
 smoothic <- function(formula,
                      data,
+                     family = "sgnd",
                      model = "mpr",
                      lambda = "log(n)",
                      epsilon_1 = 0.3,
@@ -93,7 +98,6 @@ smoothic <- function(formula,
                      steps_T = 100,
                      zero_tol = 1e-5,
                      max_it = 1e4,
-                     family = "sgnd",
                      optimizer = "nlm",
                      kappa, # if missing then it is estimated
                      tau, # if missing and sgnd then set to 0.15, if normal 0.01 or laplace 0.15
@@ -161,46 +165,8 @@ smoothic <- function(formula,
   p2 <- ncol(x2) - 1
   p3 <- ncol(x3) - 1
 
+
   # Inputs ----
-  fix_kappa_lgl <- FALSE # assume not supplied so will be estimated (not fixed)
-
-  if (!missing(kappa)) { # if kappa value supplied in input, then will be fixed
-    if (!(kappa >= 0.2)) {
-      stop("Error: kappa must be greater than 0.2 (must be positive parameter, but values less than 0.2 tend to be unstable")
-    }
-    fix_kappa_lgl <- TRUE
-  }
-
-  if (!fix_kappa_lgl) {
-    kappa <- NA # if not fixing, then set to NA to be estimate
-  }
-
-  if (family != "sgnd") {
-    fix_kappa_lgl <- TRUE
-    switch(family,
-      "normal" = {
-        kappa <- 2
-      },
-      "laplace" = {
-        kappa <- 1
-      }
-    )
-  }
-
-  if (missing(tau)) { # if tau not supplied, then make value
-    switch(family,
-      "normal" = {
-        tau <- 0.05
-      },
-      "sgnd" = {
-        tau <- 0.15
-      },
-      "laplace" = {
-        tau <- 0.15
-      }
-    )
-  }
-
   if(!missing(stepmax_nlm)) {
     if (!(stepmax_nlm > 0)) {
       stop("Error: stepmax_nlm must be a positive scalar")
@@ -211,28 +177,81 @@ smoothic <- function(formula,
     stepmax_nlm <- NA
   }
 
-  kappa_omega <- 0.2
+  if (family == "normal" & !missing(kappa)) {
+    stop("Error: for 'normal' family, kappa cannot be fixed, please choose 'sgnd' family")
+  }
 
-  # Fit model ----
-  fit_out <- fitting_func_pkg(
-    x1 = x1,
-    x2 = x2,
-    x3 = x3,
-    y = y,
-    family = family,
-    optimizer = optimizer,
-    lambda = lambda,
-    epsilon_1 = epsilon_1,
-    epsilon_T = epsilon_T,
-    steps_T = steps_T,
-    max_it = max_it,
-    kappa = kappa,
-    tau = tau,
-    fix_kappa_lgl = fix_kappa_lgl,
-    kappa_omega = kappa_omega,
-    stepmax_nlm = stepmax_nlm
-  )
+  if (family == "laplace" & !missing(kappa)) {
+    stop("Error: for 'laplace' family, kappa cannot be fixed: please choose 'sgnd' family")
+  }
 
+  # If family == "normal" then use "basic" original coding method ----
+  if (family == "normal") {
+    fit_out <- fitting_func_normal(x1 = x1,
+                                   x2 = x2,
+                                   y = y,
+                                   optimizer = optimizer,
+                                   epsilon_1 = epsilon_1,
+                                   epsilon_T = epsilon_T,
+                                   steps_T = steps_T,
+                                   lambda_beta = lambda,
+                                   lambda_alpha = lambda,
+                                   max_it = max_it,
+                                   stepmax_nlm = stepmax_nlm)
+    fit_out$theta <- c(fit_out$theta, "nu_0" = NA) # include NA for nu_0
+
+    kappa <- NA # needed for output of function
+    tau <- NA
+    kappa_omega <- NA
+
+  } else if (family != "normal") {
+    # Inputs ----
+    fix_kappa_lgl <- FALSE # assume not supplied so will be estimated (not fixed)
+
+    if (!missing(kappa)) { # if kappa value supplied in input, then will be fixed
+      if (!(kappa >= 0.2)) {
+        stop("Error: kappa must be greater than 0.2 (must be positive parameter, but values less than 0.2 tend to be unstable")
+      }
+      fix_kappa_lgl <- TRUE
+    }
+
+    if (!fix_kappa_lgl) {
+      kappa <- NA # if not fixing, then set to NA to be estimated
+    }
+
+    if (family == "laplace") { # fix kappa to 1 if family == "laplace"
+      kappa <- 1
+      fix_kappa_lgl <- TRUE
+    }
+
+    if (missing(tau)) { # if tau not supplied, then make value
+      tau <- 0.15
+    }
+
+    kappa_omega <- 0.2
+
+    # Fit model ----
+    fit_out <- fitting_func_pkg(
+      x1 = x1,
+      x2 = x2,
+      x3 = x3,
+      y = y,
+      family = family,
+      optimizer = optimizer,
+      lambda = lambda,
+      epsilon_1 = epsilon_1,
+      epsilon_T = epsilon_T,
+      steps_T = steps_T,
+      max_it = max_it,
+      kappa = kappa,
+      tau = tau,
+      fix_kappa_lgl = fix_kappa_lgl,
+      kappa_omega = kappa_omega,
+      stepmax_nlm = stepmax_nlm
+    )
+  }
+
+  # Extract values ----
   # Estimates ----
   theta_scale <- fit_out$theta
   int_pos <- c(1, (p1 + 2), (1 + p1 + 1 + p2 + 1)) # positions of intercepts
@@ -244,24 +263,38 @@ smoothic <- function(formula,
   names(theta) <- names_coef
 
   # Get standard errors ----
-  see_scale <- suppressWarnings({
-    get_see_func_user(
-      theta = theta_scale,
-      x1 = x1,
-      x2 = x2,
-      x3 = x3,
-      y = y,
-      tau = tau,
-      epsilon = epsilon_T,
-      kappa_omega = kappa_omega,
-      list_family = list_families$smoothgnd,
-      lambda = lambda
-    )
-  }) # scaled data
+  if (family == "normal") {
+    info_list_normal <- basic_information_matrices(theta = theta_scale[-length(theta_scale)], # remove nu_0
+                                                   x1 = x1,
+                                                   x2 = x2,
+                                                   y = y,
+                                                   lambda_beta = lambda,
+                                                   lambda_alpha = lambda,
+                                                   epsilon = epsilon_T)
+    see_scale_normal <- c(get_see_normal(info_list_normal), NA) # NA for nu_0
+    see <- see_scale_normal / x_sd_theta
+    see[zero_pos_final] <- 0 # set to zero
+    names(see) <- names_coef
+  } else {
+    see_scale <- suppressWarnings({
+      get_see_func_user(
+        theta = theta_scale,
+        x1 = x1,
+        x2 = x2,
+        x3 = x3,
+        y = y,
+        tau = tau,
+        epsilon = epsilon_T,
+        kappa_omega = kappa_omega,
+        list_family = list_families$smoothgnd,
+        lambda = lambda
+      )
+    }) # scaled data
 
-  see <- see_scale / x_sd_theta
-  see[zero_pos_final] <- 0 # set to zero
-  names(see) <- names_coef
+    see <- see_scale / x_sd_theta
+    see[zero_pos_final] <- 0 # set to zero
+    names(see) <- names_coef
+  }
 
   kappa_val <- unname(nu_to_kappa(theta[length(theta)],
     kappa_omega = kappa_omega
@@ -317,6 +350,8 @@ smoothic <- function(formula,
 #'
 #' @export
 summary.smoothic <- function(object, ...) {
+  family <- object$family
+
   coefficients <- object$coefficients
   see <- object$see
 
@@ -327,32 +362,38 @@ summary.smoothic <- function(object, ...) {
 
   zval <- coefficients / see
 
-  kappa <- object$kappa
-  kappa_omega <- object$kappa_omega
-  tau <- object$tau
+  if (family == "normal") {
+    pval <- 1.96 * pnorm(abs(zval), lower.tail = FALSE)
+  } else {
+    kappa <- object$kappa
+    kappa_omega <- object$kappa_omega
+    tau <- object$tau
 
-  # qgndnorm(p = 0.975, mu = 0, s = sqrt(2), kappa = 2, tau = 1e-6)
-  times <- qgndnorm(
-    p = 0.975, # like getting 1.96 from qnorm(0.975, lower.tail = FALSE)
-    mu = 0,
-    s = 1,
-    kappa = kappa,
-    tau = tau
-  )
+    # qgndnorm(p = 0.975, mu = 0, s = sqrt(2), kappa = 2, tau = 1e-6)
+    times <- qgndnorm(
+      p = 0.975, # like getting 1.96 from qnorm(0.975, lower.tail = FALSE)
+      mu = 0,
+      s = 1,
+      kappa = kappa,
+      tau = tau
+    )
 
-  pval <- times * pgndnorm_vec(
-    q = abs(zval),
-    mu = 0,
-    s = 1,
-    kappa = kappa,
-    tau = tau
-  )
+    pval <- times * pgndnorm_vec(
+      q = abs(zval),
+      mu = 0,
+      s = 1,
+      kappa = kappa,
+      tau = tau
+    )
+  }
+
   coefmat <- cbind(
     Estimate = coefficients,
     SEE = see,
     Z = zval,
     Pvalue = pval
   )
+
   out <- list(
     model = object$model,
     coefmat = coefmat,
@@ -372,6 +413,8 @@ print.smoothic <- function(x, ...) {
   print(x$call)
   cat("Model:\n")
   print(x$model)
+  cat("Family:\n")
+  print(x$family)
 
   kappa_lgl <- ifelse(x$family == "sgnd", "yes_kappa", "no_kappa")
 
@@ -568,6 +611,19 @@ get_see_func_user <- function(theta,
   see <- get_see_now(info_mat_list)
   see
 }
+
+get_see_normal <- function(list_of_2_info_matrices) {
+  observed_information_penalized <- list_of_2_info_matrices$observed_information_penalized
+  observed_information_unpenalized <- list_of_2_info_matrices$observed_information_unpenalized
+
+  inverse_observed_information_penalized <- solve(observed_information_penalized)
+
+  # Square root of the diagonal of the variance-covariance matrix
+  see <- sqrt(diag(inverse_observed_information_penalized %*% observed_information_unpenalized %*% inverse_observed_information_penalized)) # sandwich formula
+
+  see
+}
+
 
 # All functions to pull from ----------------------------------------------
 # Smooth Generalized Normal Distribution ----------------------------------
@@ -3124,4 +3180,413 @@ get_see_now <- function(info_list) {
   inv_pen <- solve(info_list$observed_information_penalized)
 
   sqrt(diag(inv_pen %*% info_list$observed_information_unpenalized %*% inv_pen))
+}
+
+
+# BASIC ORIGINAL CODING METHOD --------------------------------------------
+# ** Normal Likelihood ----------------------------------------------------
+basic_normallike <- function(theta,
+                             x1,
+                             x2,
+                             y) {
+  n <- length(y)
+
+  p1 <- ncol(x1) - 1
+
+  beta <- theta[1:(p1 + 1)]
+  alpha <- theta[-c(1:(p1 + 1))]
+
+  mu <- x1 %*% beta
+  phi <- exp(x2 %*% alpha)
+
+  like <- -(n / 2) * log(2 * pi) - (1 / 2) * (sum(x2 %*% alpha)) - (1 / 2) * (sum((1 / phi) * ((y - mu)^2)))
+  like # maximize likelihood
+}
+
+# ** Penalized Likelihood -------------------------------------------------
+basic_penalizedlike <- function(theta,
+                                x1,
+                                x2,
+                                y,
+                                lambda_beta,
+                                lambda_alpha,
+                                epsilon) {
+  # maximise this
+  n <- length(y)
+
+  p1 <- ncol(x1) - 1
+
+  beta <- theta[1:(p1 + 1)]
+  alpha <- theta[-c(1:(p1 + 1))]
+
+  lambda_beta <- (eval(parse(text = lambda_beta)))
+  lambda_alpha <- (eval(parse(text = lambda_alpha)))
+
+  # remove intercepts as won't be penalized
+  beta1_p <- beta[-1]
+  alpha1_p <- alpha[-1]
+
+  # both sets of coefficients penalized
+  p_like <- basic_normallike(theta, x1, x2, y) - ((lambda_beta / 2) * (1 + (sum((beta1_p^2) / (beta1_p^2 + epsilon^2))))) - ((lambda_alpha / 2) * (1 + (sum((alpha1_p^2) / (alpha1_p^2 + epsilon^2)))))
+  p_like # divided by two for penalized setup, +1 for estimation of intercepts
+}
+
+# ** Negative Penalized Likelihood ----------------------------------------
+basic_neg_penalizedlike <- function(...) {
+  -basic_penalizedlike(...)
+}
+
+# ** NR Penalty -----------------------------------------------------------
+basic_nr_normal_penalty <- function(theta,
+                                    x1,
+                                    x2,
+                                    y,
+                                    lambda_beta,
+                                    lambda_alpha,
+                                    epsilon,
+                                    initial_step,
+                                    max_step_it) {
+  n <- length(y)
+
+  p1 <- ncol(x1) - 1
+  p2 <- ncol(x2) - 1
+
+  beta <- theta[1:(p1 + 1)]
+  alpha <- theta[-c(1:(p1 + 1))]
+
+  beta1_p <- beta[-1] # remove intercepts as won't be penalized
+  alpha1_p <- alpha[-1]
+
+  mu <- x1 %*% beta
+  phi <- exp(x2 %*% alpha)
+
+  tx1 <- t(x1) # save transpose of x1 as an object
+  tx2 <- t(x2) # save transpose of x1 as an object
+
+  lambda_beta <- (eval(parse(text = lambda_beta)))
+  lambda_alpha <- (eval(parse(text = lambda_alpha)))
+
+  ## Score
+  ## Beta
+  z_beta <- ((1 / phi) * (y - mu))
+  v_beta <- c(0, (lambda_beta / 2) * ((2 * beta1_p * (epsilon^2)) / ((beta1_p^2 + epsilon^2)^2)))
+  score_beta <- (tx1 %*% z_beta) - v_beta
+
+  ## Alpha
+  z_alpha <- (-1 / 2) + (1 / (2 * phi)) * (((y - mu)^2))
+  v_alpha <- c(0, (lambda_alpha / 2) * ((2 * alpha1_p * (epsilon^2)) / ((alpha1_p^2 + epsilon^2)^2)))
+  score_alpha <- (tx2 %*% z_alpha) - v_alpha
+
+  score <- c(score_beta, score_alpha)
+
+  ## Information Matrix
+  # Beta
+  W_beta <- (1 / phi)
+  Sigma_beta <- diag(c(
+    0,
+    (lambda_beta / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (beta1_p^2))) / ((beta1_p^2 + epsilon^2)^3))
+  ),
+  nrow = p1 + 1,
+  ncol = p1 + 1
+  )
+  I_beta <- ((t(x1 * c(W_beta))) %*% x1) + Sigma_beta
+
+  # Alpha
+  W_alpha <- (1 / (2 * phi)) * ((y - mu)^2)
+  Sigma_alpha <- diag(c(
+    0,
+    (lambda_alpha / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (alpha1_p^2))) / ((alpha1_p^2 + epsilon^2)^3))
+  ),
+  nrow = p2 + 1,
+  ncol = p2 + 1
+  )
+  I_alpha <- ((t(x2 * c(W_alpha))) %*% x2) + Sigma_alpha
+
+  # Cross deriv
+  W_beta_alpha <- rep(0, n) # Can change depending on orthogonality of parameters
+  # W_beta_alpha <- (1 / phi) * (y - mu) # true derivative
+  I_beta_alpha <- t(x1 * c(W_beta_alpha)) %*% x2
+  I_alpha_beta <- t(I_beta_alpha)
+
+  information <- rbind(
+    cbind(I_beta, I_beta_alpha),
+    cbind(I_alpha_beta, I_alpha)
+  )
+
+  delta <- solve(information, score)
+
+  ## Step halving
+  like_current <- basic_penalizedlike(theta, x1, x2, y, lambda_beta, lambda_alpha, epsilon)
+  like_new <- like_current - 1
+  j <- 0
+  while (like_new < like_current & j < max_step_it) {
+    theta_new <- theta + ((initial_step * delta) / (2^j))
+    like_new <- basic_penalizedlike(theta_new, x1, x2, y, lambda_beta, lambda_alpha, epsilon)
+    j <- j + 1
+  }
+  max_step_reached <- ifelse(j == max_step_it, TRUE, FALSE)
+  return(list(
+    "estimate" = theta_new, "maximum" = like_new,
+    "steps" = c(max_step_reached, j)
+  ))
+}
+
+# ** Information Matrices -------------------------------------------------
+basic_information_matrices <- function(theta,
+                                       x1,
+                                       x2, y,
+                                       lambda_beta,
+                                       lambda_alpha,
+                                       epsilon) {
+  n <- length(y)
+
+  p1 <- ncol(x1) - 1
+  p2 <- ncol(x2) - 1
+
+
+  beta <- theta[1:(p1 + 1)]
+  alpha <- theta[-c(1:(p1 + 1))]
+
+  beta1_p <- beta[-1] # remove intercepts as won't be penalized
+  alpha1_p <- alpha[-1]
+
+  mu <- x1 %*% beta
+  phi <- exp(x2 %*% alpha)
+
+  lambda_beta <- (eval(parse(text = lambda_beta)))
+  lambda_alpha <- (eval(parse(text = lambda_alpha)))
+
+  ## Penalized Observed Information Matrix
+  # Beta
+  W_beta <- (1 / phi)
+  Sigma_beta <- diag(c(
+    0,
+    (lambda_beta / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (beta1_p^2))) / ((beta1_p^2 + epsilon^2)^3))
+  ),
+  nrow = p1 + 1,
+  ncol = p1 + 1
+  )
+  I_beta <- ((t(x1 * c(W_beta))) %*% x1) + Sigma_beta
+
+  # Alpha
+  W_alpha <- (1 / (2 * phi)) * ((y - mu)^2)
+  Sigma_alpha <- diag(c(
+    0,
+    (lambda_alpha / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (alpha1_p^2))) / ((alpha1_p^2 + epsilon^2)^3))
+  ),
+  nrow = p2 + 1,
+  ncol = p2 + 1
+  )
+  I_alpha <- ((t(x2 * c(W_alpha))) %*% x2) + Sigma_alpha
+
+  # Cross deriv
+  # W_beta_alpha <- rep(0, n) # Can change depending on orthogonality of parameters
+  W_beta_alpha <- (1 / phi) * (y - mu) #  negative derivative wrt to beta and alpha
+  I_beta_alpha <- t(x1 * c(W_beta_alpha)) %*% x2
+  I_alpha_beta <- t(I_beta_alpha)
+
+  observed_information_penalized <- rbind(
+    cbind(I_beta, I_beta_alpha),
+    cbind(I_alpha_beta, I_alpha)
+  )
+
+
+  ## Unpenalized Information evaluated at penalized estimates
+  I_beta_unpen <- ((t(x1 * c(W_beta))) %*% x1) # no sigma
+  I_alpha_unpen <- ((t(x2 * c(W_alpha))) %*% x2) # no sigma
+
+  observed_information_unpenalized <- rbind(
+    cbind(I_beta_unpen, I_beta_alpha),
+    cbind(I_alpha_beta, I_alpha_unpen)
+  )
+
+
+  list(
+    "observed_information_penalized" = observed_information_penalized,
+    "observed_information_unpenalized" = observed_information_unpenalized
+  )
+}
+
+# * basic_telescope -------------------------------------------------------------
+basic_telescope <- function(x1,
+                            x2,
+                            y,
+                            theta_init,
+                            eps_tele_vec,
+                            lambda_beta,
+                            lambda_alpha,
+                            initial_step,
+                            max_step_it,
+                            tol,
+                            max_it) {
+  p1 <- ncol(x1) - 1 # important for getting dimensions of the output matrix
+  p2 <- ncol(x2) - 1
+
+  t_initial_guess <- theta_init
+  t_res_mat <- matrix(NA,
+                      nrow = length(eps_tele_vec),
+                      ncol = (length(t_initial_guess) + 5)
+  )
+  colnames(t_res_mat) <- c(
+    "epsilon",
+    paste0("beta_", 0:p1),
+    paste0("alpha_", 0:p2),
+    "plike_val",
+    "step_full",
+    "it_full",
+    "it"
+  )
+  ## basic_telescope
+  for (i in eps_tele_vec) {
+    pos <- which(eps_tele_vec == i)
+    t_fit <- it_loop(
+      theta = t_initial_guess,
+      FUN = basic_nr_normal_penalty,
+      tol = tol,
+      max_it = max_it,
+      x1 = x1,
+      x2 = x2,
+      y = y,
+      lambda_beta = lambda_beta,
+      lambda_alpha = lambda_alpha,
+      epsilon = i,
+      initial_step = initial_step,
+      max_step_it = max_step_it
+    )
+    t_initial_guess <- t_fit$estimate
+    steps_full <- ifelse(any(t_fit$max_step_reached == 1), 1, 0) # 1 if true, 0 if false
+
+    t_res_mat[pos, ] <- c(i, t_fit$estimate, t_fit$maximum, steps_full, t_fit$iterations)
+  }
+  as.data.frame(t_res_mat) # return dataframe
+}
+
+basic_telescope_nlm <- function(x1,
+                                x2,
+                                y,
+                                theta_init,
+                                eps_tele_vec,
+                                lambda_beta,
+                                lambda_alpha,
+                                iterlim_nlm,
+                                stepmax_nlm) {
+  p1 <- ncol(x1) - 1 # important for getting dimensions of the output matrix
+  p2 <- ncol(x2) - 1
+
+  t_initial_guess <- theta_init
+  t_res_mat <- matrix(NA,
+                      nrow = length(eps_tele_vec),
+                      ncol = (length(t_initial_guess) + 5)
+  )
+  colnames(t_res_mat) <- c(
+    "epsilon",
+    paste0("beta_", 0:p1),
+    paste0("alpha_", 0:p2),
+    "plike_val",
+    "step_full",
+    "it_full",
+    "it"
+  )
+
+  stepmax_lgl <- ifelse(is.na(stepmax_nlm), "no_stepmax", "yes_stepmax")
+
+  for (i in eps_tele_vec) {
+    pos <- which(eps_tele_vec == i)
+
+    switch (stepmax_lgl,
+            "yes_stepmax" = {
+              t_fit <- suppressWarnings({
+                nlm(basic_neg_penalizedlike, # nlm minimizes -> likelihood_penalized_neg
+                    p = t_initial_guess,
+                    x1 = x1,
+                    x2 = x2,
+                    y = y,
+                    lambda_beta = lambda_beta,
+                    lambda_alpha = lambda_alpha,
+                    epsilon = i,
+                    iterlim = iterlim_nlm,
+                    stepmax = stepmax_nlm
+                )
+              })},
+            "no_stepmax" = {
+              t_fit <- suppressWarnings({
+                nlm(basic_neg_penalizedlike,
+                    p = t_initial_guess,
+                    x1 = x1,
+                    x2 = x2,
+                    y = y,
+                    lambda_beta = lambda_beta,
+                    lambda_alpha = lambda_alpha,
+                    epsilon = i,
+                    iterlim = iterlim_nlm
+                )
+              })
+
+            }
+    )
+    t_initial_guess <- t_fit$estimate
+    steps_full <- 0 # set to zero for nlm as not dealing with step halving
+    it_full <- ifelse(t_fit$iterations == iterlim_nlm, 1, 0)
+
+    t_res_mat[pos, ] <- c(i, t_fit$estimate, -t_fit$minimum, steps_full, it_full, t_fit$iterations)
+  }
+  as.data.frame(t_res_mat) # return data frame
+}
+
+fitting_func_normal <- function(x1,
+                                x2,
+                                y,
+                                optimizer,
+                                epsilon_1,
+                                epsilon_T,
+                                steps_T,
+                                lambda_beta,
+                                lambda_alpha,
+                                max_it,
+                                stepmax_nlm,
+                                initial_step = 10,
+                                max_step_it = 1e3,
+                                tol = 1e-8) {
+  eps_tele_vec <- rev(exp(seq(log(epsilon_T), log(epsilon_1), length = steps_T)))
+
+  p1 <- ncol(x1) - 1
+  p2 <- ncol(x2) - 1
+
+  lm_fit <- lm(y ~ x1[, -1])
+  lm_coef <- coef(lm_fit)
+  lm_coef_sig <- c(
+    unname(coef(lm_fit)),
+    log((summary(lm_fit)$sigma)^2)
+  )
+  theta_init <- c(lm_coef_sig, rep(0, p2))
+
+  switch (optimizer,
+          "manual" = {
+            fit_out <- basic_telescope(x1 = x1,
+                                       x2 = x2,
+                                       y = y,
+                                       theta_init = theta_init,
+                                       eps_tele_vec = eps_tele_vec,
+                                       lambda_beta = lambda_beta,
+                                       lambda_alpha = lambda_alpha,
+                                       initial_step = initial_step,
+                                       max_step_it = max_step_it,
+                                       tol = tol,
+                                       max_it = max_it)
+          },
+          "nlm" = {
+            fit_out <- basic_telescope_nlm(x1 = x1,
+                                           x2 = x2,
+                                           y = y,
+                                           theta_init = theta_init,
+                                           eps_tele_vec = eps_tele_vec,
+                                           lambda_beta = lambda_beta,
+                                           lambda_alpha = lambda_alpha,
+                                           iterlim_nlm = max_it,
+                                           stepmax_nlm = stepmax_nlm)
+          }
+  )
+
+  extract_fit <- extract_theta_plike_val(fit_res = fit_out)
+  extract_fit
 }
