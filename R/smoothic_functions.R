@@ -30,11 +30,6 @@
 #' Defaults to \code{1e-05}.
 #' @param max_it Maximum number of iterations to performed before the
 #' optimization is terminated. Defaults to \code{1e+04}.
-#' @param family The family of the model, default is \code{family = "sgnd"} for the
-#' "Smooth Generalized Distribution" where the shape parameter kappa is also
-#' estimated. Classical regression with normally distributed errors is performed
-#' when \code{family = "normal"}. If \code{family = "laplace"}, this corresponds to
-#' a robust regression with errors from the Laplace distribution.
 #' @param optimizer The optimization procedure to be used. Defaults to
 #' \code{optimizer = "nlm"}, where the \code{\link{nlm}} function from the
 #' \bold{stats} package is used. This tends to be more stable than the manually
