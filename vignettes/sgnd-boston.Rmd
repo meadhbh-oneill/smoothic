@@ -1,0 +1,42 @@
+---
+title: "Smooth Generalized Normal Distribution"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Smooth Generalized Normal Distribution}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+To begin, load the package.
+
+```{r setup}
+library(smoothic)
+```
+
+# Boston Housing Data
+Perform automatic variable selection using a smooth information criterion.
+
+```{r}
+fit <- smoothic(
+  formula = lcmedv ~ .,
+  data = bostonhouseprice2,
+  family = "sgnd", # Smooth Generalized Normal Distribution
+  model = "mpr" # model location and scale
+)
+```
+
+Display the estimates and standard errors.
+```{r}
+summary(fit)
+
+fit$kappa # shape estimate
+```
+
+
