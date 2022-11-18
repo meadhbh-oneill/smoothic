@@ -182,7 +182,7 @@ smoothic <- function(formula,
 
   # If family == "normal" then use "basic" original coding method ----
   if (family == "normal") {
-    fit_out <- fitting_func_normal(x1 = x1,
+    fit_mat <- fitting_func_normal(x1 = x1,
                                    x2 = x2,
                                    y = y,
                                    optimizer = optimizer,
@@ -192,7 +192,9 @@ smoothic <- function(formula,
                                    lambda_beta = lambda,
                                    lambda_alpha = lambda,
                                    max_it = max_it,
-                                   stepmax_nlm = stepmax_nlm)
+                                   stepmax_nlm = stepmax_nlm) # returns matrix
+    fit_out <- extract_theta_plike_val(fit_res = fit_mat)
+
     fit_out$theta <- c(fit_out$theta, "nu_0" = NA) # include NA for nu_0
 
     kappa <- NA # needed for output of function
@@ -226,7 +228,7 @@ smoothic <- function(formula,
     kappa_omega <- 0.2
 
     # Fit model ----
-    fit_out <- fitting_func_pkg(
+    fit_mat <- fitting_func_pkg(
       x1 = x1,
       x2 = x2,
       x3 = x3,
@@ -244,6 +246,7 @@ smoothic <- function(formula,
       kappa_omega = kappa_omega,
       stepmax_nlm = stepmax_nlm
     )
+    fit_out <- extract_theta_plike_val(fit_res = fit_mat)
   }
 
   # Extract values ----
@@ -305,6 +308,7 @@ smoothic <- function(formula,
     "kappa" = kappa_val,
     "tau" = tau,
     "kappa_omega" = kappa_omega,
+    "telescope_df" = fit_mat,
     "call" = cl
   )
   class(out) <- "smoothic"
@@ -572,8 +576,9 @@ fitting_func_pkg <- function(x1,
     tol = tol,
     max_it = max_it
   )
-  extract_fit <- extract_theta_plike_val(fit_res = fit_out)
-  extract_fit
+  # extract_fit <- extract_theta_plike_val(fit_res = fit_out)
+  # extract_fit
+  fit_out
 }
 
 
@@ -3583,7 +3588,7 @@ fitting_func_normal <- function(x1,
                                            stepmax_nlm = stepmax_nlm)
           }
   )
-
-  extract_fit <- extract_theta_plike_val(fit_res = fit_out)
-  extract_fit
+  # extract_fit <- extract_theta_plike_val(fit_res = fit_out)
+  # extract_fit
+  fit_out
 }

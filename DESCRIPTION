@@ -14,6 +14,9 @@ Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.2.2
 Suggests: 
+    dplyr,
+    ggplot2,
     knitr,
-    rmarkdown
+    rmarkdown,
+    tidyr
 VignetteBuilder: knitr
