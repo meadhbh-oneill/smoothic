@@ -1,3 +1,4 @@
+<img src="data-raw/logo.png" align="right" height="139" />
 
 # smoothic
 
