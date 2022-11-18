@@ -1,4 +1,4 @@
-# smoothic <img src="man/figures/logo.png" align="right" width="120" />
+# smoothic <img src="man/figures/logo.png" align="right" width="120" style="float:right; width:120px;" />
 
 <!-- badges: start -->
 [![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/smoothic)](https://cran.r-project.org/package=smoothic)
