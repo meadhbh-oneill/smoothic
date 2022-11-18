@@ -82,5 +82,6 @@ plot_df %>%
   )) +
   facet_wrap(~type) +
   geom_line() +
+  labs(y = "Standardized Coefficient Value")
   theme_bw()
 ```
