@@ -25,3 +25,22 @@ Install the development version from GitHub:
 # install.packages("devtools")
 devtools::install_github("meadhbh-oneill/smoothic")
 ```
+
+### smoothic()
+The `smoothic()` function performs automatic variable selection with distributional regression.
+
+``` r
+library(smoothic)
+fit <- smoothic(
+  formula = y ~ .,
+  data = dataset
+)
+```
+
+A summary table that includes the estimated coefficients, estimated standard errors (SEE) and the value of the penalized likelihood function is returned with:
+
+``` r
+summary(fit)
+```
+
+Further information and examples of implementation (including plotting of the coefficient paths) are available in the function documentation and vignettes.
