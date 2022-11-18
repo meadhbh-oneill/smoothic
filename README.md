@@ -1,4 +1,4 @@
-<img src="vignettes/logo.png" align="right" height="139" />
+<img src="man/figures/logo.png" align="right" height="139" />
 
 # smoothic
 
@@ -43,4 +43,4 @@ A summary table that includes the estimated coefficients, estimated standard err
 summary(fit)
 ```
 
-Further information and examples of implementation (including plotting of the coefficient paths) are available in the function documentation and vignettes.
+Further information and examples of implementation (including plotting of the coefficient paths - `vignette("sgnd-boston")`) are available in the function documentation and vignettes.

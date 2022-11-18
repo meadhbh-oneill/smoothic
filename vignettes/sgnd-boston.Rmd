@@ -45,7 +45,7 @@ fit$kappa # shape estimate
 ```
 
 Plot the standardized coefficient values with respect to the epsilon-telescope.
-```{r, fig.width=12, fig.height=8}
+```{r, fig.width=10, fig.height=8}
 telescope_df <- fit$telescope_df # dataframe with standardized coefficient values for each epsilon in the telescope
 
 # Variable names (without the response & intercept terms)
@@ -67,8 +67,8 @@ plot_df <- telescope_df %>%
   rename_all(~ c("epsilon", names_coef)) %>% # rename columns
   pivot_longer(-epsilon) %>%
   mutate(type = case_when( # extract whether variable is location or scale
-    grepl("_beta", name) ~ "location",
-    grepl("alpha", name) ~ "scale"
+    grepl("_beta", name) ~ "Location",
+    grepl("alpha", name) ~ "Scale"
   )) %>%
   mutate(coef = sub("_.*", "", name)) # extract variable name
 
