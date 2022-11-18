@@ -1,0 +1,10 @@
+pandoc: 2.19.2
+pkgdown: 2.0.6
+pkgdown_sha: ~
+articles:
+  sgnd-boston: sgnd-boston.html
+last_built: 2022-11-18T15:00Z
+urls:
+  reference: https://meadhbh-oneill.github.io/smoothic/reference
+  article: https://meadhbh-oneill.github.io/smoothic/articles
+
