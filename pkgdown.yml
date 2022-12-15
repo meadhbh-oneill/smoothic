@@ -3,7 +3,7 @@ pkgdown: 2.0.6
 pkgdown_sha: ~
 articles:
   sgnd-boston: sgnd-boston.html
-last_built: 2022-12-15T14:02Z
+last_built: 2022-12-15T14:14Z
 urls:
   reference: https://meadhbh-oneill.github.io/smoothic/reference
   article: https://meadhbh-oneill.github.io/smoothic/articles
