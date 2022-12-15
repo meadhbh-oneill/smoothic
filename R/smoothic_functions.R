@@ -65,7 +65,7 @@
 #' Information Criterion for Multi-Parameter Regression Models. <arXiv:2110.02643>
 #'
 #' O'Neill, M. and Burke, K. (2022) Robust Distributional Regression with
-#' Automatic Variable Selection. <soon to be on arXiv>
+#' Automatic Variable Selection. <arXiv:2212.07317>
 #'
 #' @examples
 #' # Sniffer Data --------------------
@@ -88,7 +88,7 @@ smoothic <- function(formula,
                      family = "sgnd",
                      model = "mpr",
                      lambda = "log(n)",
-                     epsilon_1 = 0.3,
+                     epsilon_1 = 10,
                      epsilon_T = 1e-4,
                      steps_T = 100,
                      zero_tol = 1e-5,

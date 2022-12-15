@@ -12,7 +12,7 @@ coded Newton-Raphson method (`optimizer = "manual"`)
 * addition of the Laplace distribution, which corresponds to robust regression where the
 errors are heavy-tailed
 
-* new dataset `bostonhouseprice2`, which is a corrected version of the orginial `bostonhouseprice` data
+* new dataset `bostonhouseprice2`, which is a corrected version of the original `bostonhouseprice` data
 
 * new dataset `diabetes`
 
