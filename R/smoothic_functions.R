@@ -22,7 +22,7 @@
 #' @param lambda Value of penalty tuning parameter. Suggested values are
 #' \code{"log(n)"} and \code{"2"} for the BIC and AIC respectively. Defaults to
 #' \code{lambda ="log(n)"} for the BIC case.
-#' @param epsilon_1 Starting value for \eqn{\epsilon}-telescope. Defaults to 0.3.
+#' @param epsilon_1 Starting value for \eqn{\epsilon}-telescope. Defaults to 10.
 #' @param epsilon_T Final value for \eqn{\epsilon}-telescope. Defaults to
 #' \code{1e-04}.
 #' @param steps_T Number of steps in \eqn{\epsilon}-telescope. Defaults to 100.

@@ -42,7 +42,7 @@ regression (i.e., classical normal linear regression). Defaults to \code{model="
 \code{"log(n)"} and \code{"2"} for the BIC and AIC respectively. Defaults to
 \code{lambda ="log(n)"} for the BIC case.}
 
-\item{epsilon_1}{Starting value for \eqn{\epsilon}-telescope. Defaults to 0.3.}
+\item{epsilon_1}{Starting value for \eqn{\epsilon}-telescope. Defaults to 10.}
 
 \item{epsilon_T}{Final value for \eqn{\epsilon}-telescope. Defaults to
 \code{1e-04}.}
