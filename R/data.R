@@ -59,7 +59,7 @@
 #'    \item{rooms}{average number of rooms per house}
 #'    \item{radial}{index of accessibility to radial highways}
 #'    \item{stratio}{average student-teacher ratio of schools in the community}
-#'    \item{lowstat}{percentge of the population that are "lower status"}
+#'    \item{lowstat}{percentage of the population that are "lower status"}
 #'    \item{lnox}{log(annual average nitrogen oxide concentration (pphm))}
 #'    \item{lproptax}{log(property tax per $1000)}
 #'    \item{ldist}{log(weighted distances to five employment centres in the Boston region)}

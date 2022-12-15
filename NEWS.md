@@ -24,5 +24,4 @@ errors are heavy-tailed
 
 * automatic variable selection using the `smoothic` function
 
-* can choose between distributional regression (multiparameter) with `model = "mpr"` and location-only
-regression (single parameter) with `model = "spr"`
+* can choose between distributional regression (multi-parameter) with `model = "mpr"` and location-only regression (single parameter) with `model = "spr"`
