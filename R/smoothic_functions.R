@@ -28,7 +28,7 @@
 #' @param steps_T Number of steps in \eqn{\epsilon}-telescope. Defaults to 100.
 #' @param zero_tol Coefficients below this value are treated as being zero.
 #' Defaults to \code{1e-05}.
-#' @param max_it Maximum number of iterations be to performed before the
+#' @param max_it Maximum number of iterations to be performed before the
 #' optimization is terminated. Defaults to \code{1e+04}.
 #' @param optimizer The optimization procedure to be used. Defaults to
 #' \code{optimizer = "nlm"}, where the \code{\link{nlm}} function from the
