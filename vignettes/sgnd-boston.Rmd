@@ -76,7 +76,7 @@ plot_df <- telescope_df %>%
 # Plot
 plot_df %>%
   ggplot(aes(
-    x = epsilon,
+    x = log(epsilon), # log scale
     y = value,
     colour = coef
   )) +

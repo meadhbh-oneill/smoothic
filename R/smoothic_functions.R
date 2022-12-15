@@ -341,8 +341,8 @@ smoothic <- function(formula,
 #' results <- smoothic(
 #'   formula = y ~ .,
 #'   data = sniffer,
-#'   model = "mpr",
-#'   family = "normal"
+#'   family = "normal",
+#'   model = "mpr"
 #' )
 #' summary(results)
 #' @importFrom stats pnorm
