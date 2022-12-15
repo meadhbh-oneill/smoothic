@@ -75,7 +75,7 @@ the final estimates are converted back to their original scale.</p>
 <span>  family <span class="op">=</span> <span class="st">"sgnd"</span>,</span>
 <span>  model <span class="op">=</span> <span class="st">"mpr"</span>,</span>
 <span>  lambda <span class="op">=</span> <span class="st">"log(n)"</span>,</span>
-<span>  epsilon_1 <span class="op">=</span> <span class="fl">0.3</span>,</span>
+<span>  epsilon_1 <span class="op">=</span> <span class="fl">10</span>,</span>
 <span>  epsilon_T <span class="op">=</span> <span class="fl">1e-04</span>,</span>
 <span>  steps_T <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  zero_tol <span class="op">=</span> <span class="fl">1e-05</span>,</span>
@@ -187,7 +187,7 @@ distribution in the robust regression setting.</p></dd>
     <p>O'Neill, M. and Burke, K. (2021) Variable Selection Using a Smooth
 Information Criterion for Multi-Parameter Regression Models. &lt;arXiv:2110.02643&gt;</p>
 <p>O'Neill, M. and Burke, K. (2022) Robust Distributional Regression with
-Automatic Variable Selection. &lt;soon to be on arXiv&gt;</p>
+Automatic Variable Selection. &lt;arXiv:2212.07317&gt;</p>
     </div>
     <div class="section level2">
     <h2 id="author">Author<a class="anchor" aria-label="anchor" href="#author"></a></h2>
@@ -215,20 +215,20 @@ Automatic Variable Selection. &lt;soon to be on arXiv&gt;</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Coefficients:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                    Estimate       SEE       Z    Pvalue    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> intercept_0_beta   1.448103  0.852744  1.6982  0.087686 .  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> tanktemp_1_beta           0         0       0         0    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> gastemp_2_beta     0.182412  0.027991  6.5167 7.043e-11 ***</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> tankpres_3_beta   -2.943496  1.015345 -2.8990  0.003669 ** </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> gaspres_4_beta     7.390820  1.237556  5.9721 2.295e-09 ***</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> intercept_0_alpha -0.884624  0.639482 -1.3833  0.163228    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> intercept_0_beta   0.758850  0.853924  0.8887   0.36670    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> tanktemp_1_beta   -0.088858  0.027623 -3.2168   0.00127 ** </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> gastemp_2_beta     0.226261  0.025302  8.9423 &lt; 2.2e-16 ***</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> tankpres_3_beta           0         0       0         0    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> gaspres_4_beta     5.190518  0.510752 10.1625 &lt; 2.2e-16 ***</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> intercept_0_alpha -1.343862  0.643686 -2.0878   0.03608 *  </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> tanktemp_1_alpha          0         0       0         0    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> gastemp_2_alpha    0.048734  0.011094  4.3927 1.097e-05 ***</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> gastemp_2_alpha    0.056737  0.011170  5.0792 3.714e-07 ***</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> tankpres_3_alpha          0         0       0         0    </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> gaspres_4_alpha           0         0       0         0    </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ---</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Penalized Likelihood:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] -308.6679</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] -308.2184</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>

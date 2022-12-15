@@ -31,8 +31,8 @@ A list containing the following components:
 results <- smoothic(
   formula = y ~ .,
   data = sniffer,
-  model = "mpr",
-  family = "normal"
+  family = "normal",
+  model = "mpr"
 )
 summary(results)
 }
