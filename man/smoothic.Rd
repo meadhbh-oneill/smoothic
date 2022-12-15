@@ -52,7 +52,7 @@ regression (i.e., classical normal linear regression). Defaults to \code{model="
 \item{zero_tol}{Coefficients below this value are treated as being zero.
 Defaults to \code{1e-05}.}
 
-\item{max_it}{Maximum number of iterations to performed before the
+\item{max_it}{Maximum number of iterations be to performed before the
 optimization is terminated. Defaults to \code{1e+04}.}
 
 \item{optimizer}{The optimization procedure to be used. Defaults to
