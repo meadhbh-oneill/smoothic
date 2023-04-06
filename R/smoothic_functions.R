@@ -3026,7 +3026,8 @@ fitting_func_base <- function(x1, # data should be scaled
                               max_step_it,
                               tol,
                               max_it) {
-  tau_tele_vec <- rev(exp(seq(log(tau_T), log(tau_1), length = steps_T)))
+  # tau_tele_vec <- rev(exp(seq(log(tau_T), log(tau_1), length = steps_T)))
+  tau_tele_vec <- rep(tau_1, times = steps_T)
   eps_tele_vec <- rev(exp(seq(log(epsilon_T), log(epsilon_1), length = steps_T)))
 
   switch(optimizer,
@@ -3185,6 +3186,12 @@ get_see_now <- function(info_list) {
 }
 
 
+
+
+
+
+# -------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # BASIC ORIGINAL CODING METHOD --------------------------------------------
 # ** Normal Likelihood ----------------------------------------------------
 basic_normallike <- function(theta,
