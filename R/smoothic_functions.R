@@ -172,6 +172,11 @@ smoothic <- function(formula,
     stepmax_nlm <- NA
   }
 
+  if(!(family %in% c("old_normal", "normal", "laplace", "sgnd"))){
+    stop("Error: please choose a family from 'normal', 'laplace' or 'sgnd'")
+  }
+
+
   if (family == "old_normal" & !missing(kappa)) {
     stop("Error: for 'old_normal' family, kappa cannot be fixed, please choose 'sgnd' family")
   }
