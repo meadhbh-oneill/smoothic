@@ -2,7 +2,7 @@
 
 <!-- badges: start -->
 [![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/smoothic)](https://cran.r-project.org/package=smoothic)
-[![CRAN RStudio mirror downloads](http://www.r-pkg.org/badges/grand-total/smoothic)](https://cran.r-project.org/package=smoothic)
+![Download count](https://cranlogs.r-pkg.org/badges/grand-total/smoothic)
 <!-- badges: end -->
 
 For more information, check out the `smoothic`
