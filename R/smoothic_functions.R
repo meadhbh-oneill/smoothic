@@ -384,7 +384,7 @@ summary.smoothic <- function(object, ...) {
 
   zval <- coefficients / see
 
-  if (family == "normal") {
+  if (family == "old_normal") {
     pval <- 1.96 * pnorm(abs(zval), lower.tail = FALSE)
   } else {
     kappa <- object$kappa
