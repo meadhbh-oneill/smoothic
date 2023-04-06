@@ -95,7 +95,7 @@ smoothic <- function(formula,
                      max_it = 1e4,
                      optimizer = "nlm",
                      kappa, # if missing then it is estimated
-                     tau, # if missing and sgnd then set to 0.15, if normal 0.01 or laplace 0.15
+                     tau, # if missing and sgnd then set to 0.15
                      stepmax_nlm # if missing then uses nlm defaults
 ) {
   cl <- match.call()
@@ -172,6 +172,10 @@ smoothic <- function(formula,
     stepmax_nlm <- NA
   }
 
+  if (family == "old_normal" & !missing(kappa)) {
+    stop("Error: for 'old_normal' family, kappa cannot be fixed, please choose 'sgnd' family")
+  }
+
   if (family == "normal" & !missing(kappa)) {
     stop("Error: for 'normal' family, kappa cannot be fixed, please choose 'sgnd' family")
   }
@@ -181,7 +185,7 @@ smoothic <- function(formula,
   }
 
   # If family == "normal" then use "basic" original coding method ----
-  if (family == "normal") {
+  if (family == "old_normal") {
     fit_mat <- fitting_func_normal(x1 = x1,
                                    x2 = x2,
                                    y = y,
@@ -201,7 +205,7 @@ smoothic <- function(formula,
     tau <- NA
     kappa_omega <- NA
 
-  } else if (family != "normal") {
+  } else if (family != "old_normal") {
     # Inputs ----
     fix_kappa_lgl <- FALSE # assume not supplied so will be estimated (not fixed)
 
@@ -216,13 +220,26 @@ smoothic <- function(formula,
       kappa <- NA # if not fixing, then set to NA to be estimated
     }
 
-    if (family == "laplace") { # fix kappa to 1 if family == "laplace"
-      kappa <- 1
-      fix_kappa_lgl <- TRUE
+    if(!missing(tau)) {
+      if(!(tau >= 0)) {
+        stop("Error: tau must be positive")
+      }
     }
 
     if (missing(tau)) { # if tau not supplied, then make value
       tau <- 0.15
+    }
+
+    if (family == "laplace") { # fix kappa to 1 if family == "laplace"
+      kappa <- 1
+      fix_kappa_lgl <- TRUE
+      # tau = 0.15 unless otherwise specified
+    }
+
+    if (family == "normal") { # fix kappa to 2 if family == "normal" # new normal
+      kappa <- 2
+      fix_kappa_lgl <- TRUE
+      tau = 0 # tau = 0 for normal distribution, tau only required for absolute value when kappa != 2
     }
 
     kappa_omega <- 0.2
@@ -261,7 +278,7 @@ smoothic <- function(formula,
   names(theta) <- names_coef
 
   # Get standard errors ----
-  if (family == "normal") {
+  if (family == "old_normal") {
     info_list_normal <- basic_information_matrices(theta = theta_scale[-length(theta_scale)], # remove nu_0
                                                    x1 = x1,
                                                    x2 = x2,
@@ -309,6 +326,7 @@ smoothic <- function(formula,
     "tau" = tau,
     "kappa_omega" = kappa_omega,
     "telescope_df" = fit_mat,
+    "data" = data, # return supplied data
     "call" = cl
   )
   class(out) <- "smoothic"
