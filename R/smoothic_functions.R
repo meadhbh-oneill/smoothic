@@ -331,7 +331,8 @@ smoothic <- function(formula,
     "tau" = tau,
     "kappa_omega" = kappa_omega,
     "telescope_df" = fit_mat,
-    "data" = data, # return supplied data
+    "x" = x, # return supplied data
+    "y" = y,
     "call" = cl
   )
   class(out) <- "smoothic"
