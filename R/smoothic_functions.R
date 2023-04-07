@@ -708,7 +708,7 @@ plot_effects <- function(obj,
   if ("all" %in% what) {
     coef_plot_names <- names_coef_response_keep
   } else if (any(!(what %in% names_coef_response_keep))) {
-    stop("Error: please choose a variable that is selected in the model")
+    stop("Error: please choose a variable that is selected in the model, or 'median' for an average individual")
   } else {
     coef_plot_names <- what
     coef_plot_names[which(coef_plot_names == "median")] <- "response"
