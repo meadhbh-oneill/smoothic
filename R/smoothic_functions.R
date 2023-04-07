@@ -498,6 +498,258 @@ print.summary.smoothic <- function(x, ...) {
   print(x$plike) # BIC or AIC = -2*plike
 }
 
+
+# plot_effects ------------------------------------------------------------
+#' @import ggplot2
+#' @import dplyr
+#' @import tidyr
+#' @import purrr
+#' @import tibble
+#' @importFrom rlang .data
+#' @importFrom data.table rbindlist
+#' @export
+plot_effects <- function(obj,
+                         what = "all",
+                         density_range) {
+  fit_obj <- obj
+  n <- length(fit_obj$y)
+  p <- ncol(fit_obj$x) # not including intercept
+
+  # Estimates mpr or spr
+  if (fit_obj$model == "mpr") {
+    theta_final <- fit_obj$coefficients
+  } else if (fit_obj$model == "spr") {
+    theta_final <- c(fit_obj$coefficients[1:(p+2)], rep(0, p), fit_obj$coefficients[p+3])
+  }
+
+  if (is.null(colnames(fit_obj$x))) {
+    colnames_x <- paste0("X_", 1:p)
+    colnames(fit_obj$x) <- colnames_x
+  }
+
+  names_coef_labels <- colnames(fit_obj$x)
+  names_coef_labels_theta <- c("inter", names_coef_labels,
+                               "inter", names_coef_labels,
+                               "inter")
+
+  # Any binary
+  bin_unique <- as.data.frame(fit_obj$x) %>%
+    map_dbl(~ length(unique(.x)))
+
+  bin_pos <- which(bin_unique == 2)
+
+  # Response value
+  response_val <- as.character(fit_obj$call$formula[[2]])
+
+  # Build dataset with response included (no intercept columns)
+  dataset_raw <- cbind(fit_obj$x, fit_obj$y) %>%
+    as_tibble(.name_repair = "minimal")
+  colnames(dataset_raw)[p + 1] <- response_val
+
+  # Calculate
+  levels_summary <- c("median", "Q1", "Q3")
+  levels_quant <- c("Q1", "Q3")
+  names_coef_labels <- colnames(dataset_raw)[-(p + 1)]
+
+
+  df_summary <- dataset_raw %>%
+    reframe(across(everything(), ~ c(
+      median(.),
+      quantile(., probs = c(0.25, 0.75))
+    ))) %>%
+    add_column(
+      typee = factor(levels_summary, levels = levels_summary),
+      .before = 1
+    ) %>%
+    dplyr::select(-all_of(response_val))
+
+  # Change binary
+  for (i in bin_pos) {
+    df_summary[,i+1] <- c(Mode_calc(unlist(dataset_raw[,i])),
+                          min(unlist(dataset_raw[,i])),
+                          max(unlist(dataset_raw[,i])))
+  }
+
+  df_summary_t <- df_summary %>%
+    pivot_longer(-.data$typee,
+                 names_to = "coeff"
+    ) %>%
+    pivot_wider(
+      names_from = .data$typee,
+      values_from = .data$value
+    ) %>%
+    mutate(coeff = factor(.data$coeff, levels = names_coef_labels))
+
+  # Estimates (theta)
+  names_coef_keep <- theta_final %>%
+    as_tibble(.name_repair = "minimal") %>%
+    add_column(
+      coeff = names_coef_labels_theta,
+      .before = 1
+    ) %>%
+    filter(
+      .data$coeff != "inter",
+      .data$value != 0
+    ) %>%
+    pull(.data$coeff) %>%
+    unique()
+
+  names_coef_response_keep <- c("response", names_coef_keep)
+  levels_response_quant <- c("response", levels_quant)
+
+  df_average_indiv <- df_summary %>%
+    filter(.data$typee == "median") %>%
+    add_column(inter = 1,
+               .before = 2) %>%
+    add_column(coeff = "response",
+               .before = 1) %>%
+    dplyr::select(-.data$typee) %>%
+    add_column(typee = "response",
+               .after = 1)
+
+  df_dist_est_prep <- names_coef_keep %>%
+    map(~ {
+      coef_now <- .x
+
+      baseline <- df_summary_t %>%
+        filter(.data$coeff == coef_now) %>%
+        dplyr::select(.data$Q1, .data$Q3) %>%
+        unlist()
+
+      mean_vec <- df_summary %>%
+        filter(.data$typee == "median") %>%
+        dplyr::select(-.data$typee)
+
+      new_df <- rbind(
+        mean_vec,
+        mean_vec
+      )
+      new_df[, which(colnames(new_df) == coef_now)] <- baseline
+      new_df %>%
+        add_column(
+          coeff = coef_now,
+          typee = levels_quant,
+          .before = 1
+        )
+    }) %>%
+    data.table::rbindlist()
+
+  df_dist_est_1 <- df_dist_est_prep %>%
+    add_column(
+      "inter" = 1,
+      .before = 3
+    )
+
+  df_dist_est <- bind_rows(df_average_indiv,
+                           df_dist_est_1) %>%
+    mutate(
+      coeff = factor(.data$coeff, levels = names_coef_response_keep),
+      typee = factor(.data$typee, levels = levels_response_quant)
+    )
+
+  df_dist_est_mat <- df_dist_est %>%
+    dplyr::select(-c(.data$coeff, .data$typee)) %>%
+    as.matrix()
+
+  # Beta and Alpha
+  theta_final_beta <- theta_final[1:(p + 1)]
+  theta_final_alpha <- theta_final[(p + 2): ((2*p) + 2)] # will be zeros if spr
+  theta_final_nu <- theta_final[(2 * p) + 3]
+
+  mu_i_vec <- as.numeric(df_dist_est_mat %*% theta_final_beta)
+  s_i_vec <- as.numeric(sqrt(exp(df_dist_est_mat %*% theta_final_alpha)))
+  kappa_const <- unname(nu_to_kappa(theta_final_nu, fit_obj$kappa_omega)) # constant nu
+
+  names_dist_est_1 <- df_dist_est %>%
+    dplyr::select(.data$coeff, .data$typee)
+
+  names_dist_est <- split(names_dist_est_1, seq(1:nrow(names_dist_est_1))) %>%
+    map(unlist)
+
+  mu_s_list <- map2(.x = mu_i_vec,
+                    .y = s_i_vec,
+                    ~ c(.x, .y))
+
+  # Range of density plot
+  if (!missing(density_range)) {
+    x_seq <- seq(density_range[1], density_range[2], length.out = 200)
+  } else {
+    x_seq <- seq(range(fit_obj$y)[1], range(fit_obj$y)[2], length.out = 200)
+  }
+
+  df_sgnd_1 <- mu_s_list %>%
+    map(~ {
+      tibble(x = x_seq,
+             y = dgndnorm(x = x_seq, mu = .x[1], s = .x[2], kappa = kappa_const, tau = fit_obj$tau))
+    })
+  df_sgnd <-  map2(.x = df_sgnd_1, .y = names_dist_est, ~ {
+    .x %>%
+      add_column(coeff = .y[1],
+                 typee = .y[2],
+                 .before = 1)
+  }) %>%
+    data.table::rbindlist() %>%
+    mutate(coeff = factor(.data$coeff, levels = names_coef_response_keep),
+           typee = factor(.data$typee, levels = levels_response_quant))
+
+  col_pal_typee <- c("black",
+                     "#E41A1C", # red
+                     "#0072B2") # blue
+  names(col_pal_typee) <- levels_response_quant
+
+  fill_pal_typee <- c("NA",
+                      "#E41A1C", # red
+                      "#0072B2") # blue
+  names(fill_pal_typee) <- levels_response_quant
+
+  labels_facets <- c("median", names_coef_keep)
+  names(labels_facets) <- names_coef_response_keep
+
+  if ("all" %in% what) {
+    coef_plot_names <- names_coef_response_keep
+  } else {
+    coef_plot_names <- what
+    coef_plot_names[which(coef_plot_names == "median")] <- "response"
+  }
+
+  # Remove tail values less that 1e-5
+  df_sgnd_rough <- df_sgnd %>%
+    mutate(y_rough = ifelse(.data$y < 1e-5, NA, .data$y)) %>%
+    filter(.data$coeff %in% coef_plot_names) %>%
+    mutate(coeff = factor(.data$coeff, levels = coef_plot_names))
+
+
+  fig_effects <- df_sgnd_rough %>%
+    filter(!is.na(.data$y_rough)) %>%
+    ggplot(aes(x = .data$x,
+               y = .data$y_rough,
+               colour = .data$typee,
+               fill = .data$typee)) +
+    facet_wrap(~.data$coeff,
+               ncol = 1,
+               labeller = as_labeller(labels_facets)) +
+    geom_line() +
+    geom_ribbon(aes(ymin = 0, ymax = .data$y_rough),
+                alpha = 0.25) +
+    scale_colour_manual(values = col_pal_typee, breaks = levels_quant) +
+    scale_fill_manual(values = fill_pal_typee, breaks = levels_quant) +
+    theme_bw() +
+    scale_x_continuous(expand = expansion(mult = c(0.01, 0.01))) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.25))) +
+    theme(legend.title = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks.y = element_blank()) +
+    labs(x = response_val)
+  fig_effects
+}
+
+# Calculate mode
+Mode_calc <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
 # Fitting function for package --------------------------------------------
 fitting_func_pkg <- function(x1,
                              x2,
@@ -763,6 +1015,24 @@ qgndnorm <- function(p,
     u = p,
     F = F
   )
+}
+
+dgndnorm <- function(x,
+                     mu,
+                     s,
+                     kappa,
+                     tau) {
+  c_tilde_val <- c_tilde_integrate_smoothgnd(
+    kappa = kappa,
+    tau = tau
+  )
+
+  density_gnd_approx(x = x,
+                     mu_loc = mu,
+                     s_scale = s,
+                     kappa_shape = kappa,
+                     tau = tau,
+                     c_tilde = c_tilde_val)
 }
 
 pgndnorm <- function(q,
