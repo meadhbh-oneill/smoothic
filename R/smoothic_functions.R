@@ -705,9 +705,11 @@ plot_effects <- function(obj,
   labels_facets <- c("median", names_coef_keep)
   names(labels_facets) <- names_coef_response_keep
 
+  names_coef_input <- c("median", names_coef_keep)
+
   if ("all" %in% what) {
     coef_plot_names <- names_coef_response_keep
-  } else if (any(!(what %in% names_coef_response_keep))) {
+  } else if (any(!(what %in% names_coef_input))) {
     stop("Error: please choose a variable that is selected in the model, or 'median' for an average individual")
   } else {
     coef_plot_names <- what
