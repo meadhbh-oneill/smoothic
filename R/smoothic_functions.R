@@ -753,13 +753,19 @@ plot_effects <- function(obj,
 #' @import ggplot2
 #' @import dplyr
 #' @import tidyr
+#' @importFrom purrr map_dbl
 #' @importFrom rlang .data
 #' @export
 plot_paths <- function(obj,
-                       log_scale = TRUE,
+                       log_scale_x = TRUE,
+                       log_scale_x_pretty = TRUE,
                        facet_scales = "fixed") {
+  if (log_scale_x == FALSE & log_scale_x_pretty == TRUE) {
+    stop("Error: use log_scale_x = TRUE in order to use pretty scale")
+  }
+
   fit_obj <- obj
-  telescope_df <- obj$telescope_df
+  telescope_df <- fit_obj$telescope_df
 
   names_coef_fit <- names(fit_obj$coefficients)
   names_coef <- names_coef_fit[!names_coef_fit %in% c("intercept_0_beta",
@@ -779,7 +785,7 @@ plot_paths <- function(obj,
     )) %>%
     mutate(coeff = sub("_.*", "", .data$name)) # extract variable name
 
-  if (log_scale == TRUE) {
+  if (log_scale_x == TRUE) {
     plot_df <- plot_df_prep %>%
       mutate(epsilon_plot = log(.data$epsilon))
     x_label <- "log(epsilon)"
@@ -789,26 +795,68 @@ plot_paths <- function(obj,
     x_label <- "epsilon"
   }
 
-  plot_df %>%
+  fig_paths <- plot_df %>%
     ggplot(aes(x = .data$epsilon_plot,
                y = .data$value,
                colour = .data$coeff)) +
-    facet_wrap(~ .data$type,
+    facet_wrap(~.data$type,
                scales = facet_scales) +
     geom_line() +
     labs(y = "Standardized Coefficient Value",
          x = x_label) +
     guides(colour = guide_legend("Variable")) +
     theme_bw()
+
+  if (log_scale_x == TRUE & log_scale_x_pretty == TRUE) {
+    range_eps <- range(telescope_df$epsilon)
+    range_eps_char <- changeSciNot(range_eps)
+
+    suitable_vec <- sub("\\*.*", "", range_eps_char)
+
+    if (any(suitable_vec != "1") == TRUE) {
+      stop("Error: if log_scale_x_pretty = TRUE, then epsilon_1 and epsilon_T must be a power of 10")
+    }
+
+    range_eps_num <- sub(".*\\^", "", range_eps_char)
+    eps_num <- seq(as.numeric(range_eps_num[1]), as.numeric(range_eps_num[2]))
+    eps_choice <- as.numeric(paste0("1e", eps_num))
+    eps_choice_char <- paste0("10^{", eps_num, "}")
+
+    eps_tele_vec <- telescope_df$epsilon
+    eps_vals <- eps_tele_vec[eps_choice %>%
+                               purrr::map_dbl(~ {
+                                 which(abs(eps_tele_vec - .x) == min(abs(eps_tele_vec - .x)))
+                               })]
+    log_eps_vals <- log(eps_vals)
+    labels_eps <- paste0("c(",toString((paste0("'", log_eps_vals, "'=expression(", eps_choice_char,")" ))),")")
+    labels_eps <- eval(parse(text = labels_eps))
+
+    fig_paths <- fig_paths +
+      scale_x_continuous(labels = labels_eps,
+                         breaks = log_eps_vals,
+                         expand = expansion(mult = c(0.02, 0.02)))
+  } else {
+    fig_paths <- fig_paths +
+      scale_x_continuous(expand = expansion(mult = c(0.02, 0.02)))
+  }
+
+  fig_paths
 }
-
-
 
 
 # Calculate mode
 Mode_calc <- function(x) {
   ux <- unique(x)
   ux[which.max(tabulate(match(x, ux)))]
+}
+
+# Scientific notation for epsilon plotting pretty
+changeSciNot <- function(n) {
+  output <- format(n, scientific = TRUE) #Transforms the number into scientific notation even if small
+  output <- sub("e", "*10^", output) #Replace e with 10^
+  output <- sub("\\+0?", "", output) #Remove + symbol and leading zeros on expoent, if > 1
+  output <- sub("-0?", "-", output) #Leaves - symbol but removes leading zeros on expoent, if < 1
+  output
 }
 
 # Fitting function for package --------------------------------------------
