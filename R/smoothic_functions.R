@@ -748,6 +748,63 @@ plot_effects <- function(obj,
   fig_effects
 }
 
+
+# plot_paths --------------------------------------------------------------
+#' @import ggplot2
+#' @import dplyr
+#' @import tidyr
+#' @importFrom rlang .data
+#' @export
+plot_paths <- function(obj,
+                       log_scale = TRUE,
+                       facet_scales = "fixed") {
+  fit_obj <- obj
+  telescope_df <- obj$telescope_df
+
+  names_coef_fit <- names(fit_obj$coefficients)
+  names_coef <- names_coef_fit[!names_coef_fit %in% c("intercept_0_beta",
+                                                      "intercept_0_alpha",
+                                                      "alpha_0",
+                                                      "nu_0")]
+  plot_df_prep <- telescope_df %>%
+    dplyr::select(.data$epsilon,
+                  contains(c("beta", "alpha")),
+                  -c("beta_0",
+                     "alpha_0")) %>%
+    rename_all(~ c("epsilon", names_coef)) %>%
+    pivot_longer(-.data$epsilon) %>%
+    mutate(type = case_when(
+      grepl("_beta", .data$name) ~ "Location",
+      grepl("_alpha", .data$name) ~ "Scale"
+    )) %>%
+    mutate(coeff = sub("_.*", "", .data$name)) # extract variable name
+
+  if (log_scale == TRUE) {
+    plot_df <- plot_df_prep %>%
+      mutate(epsilon_plot = log(.data$epsilon))
+    x_label <- "log(epsilon)"
+  } else {
+    plot_df <- plot_df_prep %>%
+      mutate(epsilon_plot = .data$epsilon)
+    x_label <- "epsilon"
+  }
+
+  plot_df %>%
+    ggplot(aes(x = .data$epsilon_plot,
+               y = .data$value,
+               colour = .data$coeff)) +
+    facet_wrap(~ .data$type,
+               scales = facet_scales) +
+    geom_line() +
+    labs(y = "Standardized Coefficient Value",
+         x = x_label) +
+    guides(colour = guide_legend("Variable")) +
+    theme_bw()
+}
+
+
+
+
 # Calculate mode
 Mode_calc <- function(x) {
   ux <- unique(x)
