@@ -499,8 +499,34 @@ print.summary.smoothic <- function(x, ...) {
 }
 
 # predict.smoothic --------------------------------------------------------
+#' @title Predict smoothic
+#'
 #' @aliases predict.smoothic
+#'
+#' @description \code{predict} method class \dQuote{\code{smoothic}}
+#'
+#' @param object an object of class \dQuote{\code{smoothic}} which is the result
+#' of a call to \code{\link{smoothic}}.
+#' @param newdata new data object
+#' @param ... further arguments passed to or from other methods.
+#'
+#' @return a matrix containing the predicted values for the location mu and scale s
+#'
+#' @author Meadhbh O'Neill
+#'
+#' @examples
+#' # Sniffer Data --------------------
+#' # MPR Model ----
+#' results <- smoothic(
+#'   formula = y ~ .,
+#'   data = sniffer,
+#'   family = "normal",
+#'   model = "mpr"
+#' )
+#' predict(results)
+#'
 #' @importFrom stats as.formula model.matrix
+#'
 #' @export
 predict.smoothic <- function(object,
                              newdata,
