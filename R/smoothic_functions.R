@@ -760,12 +760,12 @@ plot_paths <- function(obj,
                        log_scale_x = TRUE,
                        log_scale_x_pretty = TRUE,
                        facet_scales = "fixed") {
-  if (log_scale_x == FALSE & log_scale_x_pretty == TRUE) {
-    stop("Error: use log_scale_x = TRUE in order to use pretty scale")
-  }
-
   fit_obj <- obj
   telescope_df <- fit_obj$telescope_df
+
+  if(nrow(telescope_df) < 20) {
+    warning("Ensure an adequate number of steps_T are used")
+  }
 
   names_coef_fit <- names(fit_obj$coefficients)
   names_coef <- names_coef_fit[!names_coef_fit %in% c("intercept_0_beta",
