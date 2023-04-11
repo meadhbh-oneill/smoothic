@@ -331,7 +331,7 @@ smoothic <- function(formula,
     "tau" = tau,
     "kappa_omega" = kappa_omega,
     "telescope_df" = fit_mat,
-    "x" = x, # return supplied data
+    "x" = x, # return supplied data -> matches the formula
     "y" = y,
     "call" = cl
   )
@@ -498,6 +498,67 @@ print.summary.smoothic <- function(x, ...) {
   print(x$plike) # BIC or AIC = -2*plike
 }
 
+# predict.smoothic --------------------------------------------------------
+#' @aliases predict.smoothic
+#' @importFrom stats as.formula model.matrix
+#' @export
+predict.smoothic <- function(object,
+                             newdata,
+                             ...){
+  if (!inherits(object, "smoothic")) {stop("Error: object should have 'smoothic' class")}
+
+  if (missing(newdata)) {
+    new_x <- object$x # no intercept (matches the formula from the original fit)
+  }
+
+  colnames_x <- colnames(object$x)
+
+  if(!missing(newdata)) {
+
+    if (!(class(newdata)[1] %in% c("matrix", "data.frame"))) {
+      stop("Error: newdata should be a matrix or data frame")
+    }
+
+    newdata_x <- model.matrix(as.formula(paste0("~ ", as.character(object$call$formula)[[3]])), data = newdata)[,-1] # remove column of 1s
+
+    paste0("~ ", as.character(object$call$formula)[[3]])
+
+    colnames_newdata_x <- colnames(newdata_x)
+
+    if (!identical(colnames_x, colnames_newdata_x)) {
+      stop("Error: newdata should have same column names as the original supplied data")
+    }
+
+    new_x <- newdata_x
+  }
+
+  new_x_mat <- cbind(1, as.matrix(new_x)) # include intercept
+
+  # Estimates mpr or spr
+  p <- ncol(object$x)
+
+  if (object$model == "mpr") {
+    theta_final <- object$coefficients
+  } else if (object$model == "spr") {
+    theta_final <- c(object$coefficients[1:(p+2)], rep(0, p), object$coefficients[p+3])
+  }
+
+  theta_beta <- theta_final[1:(p+1)]
+  theta_alpha <- theta_final[(p+2):((2*p) + 2)]
+
+  # predict mu
+  location_pred <- new_x_mat %*% theta_beta
+
+  # predict scale
+  scale_pred <- sqrt(exp(new_x_mat %*% theta_alpha))
+
+  # combine
+  out_mat <- cbind(location_pred,
+                   scale_pred)
+  colnames(out_mat) <- c("mu", "s")
+
+  out_mat
+}
 
 # plot_effects ------------------------------------------------------------
 #' @import ggplot2
