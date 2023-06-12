@@ -1,3 +1,16 @@
+# smoothic 1.1.0
+
+* minor update to the `smoothic()` function to include a vector of the maximum iterations to
+be performed at each epsilon-telescope step (computationally advantageous)
+
+* addition of the `plot_effects()` plotting function to plot the model-based conditional
+density curves for different covariate combinations
+
+* addition of the `plot_paths()` plotting function to plot the standardized coefficient values
+through the epsilon-telescope
+
+* addition of the `predict.smoothic()`
+
 # smoothic 1.0.0
 
 * major update to the `smoothic()` function to include different families of distributions

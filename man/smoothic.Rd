@@ -18,6 +18,7 @@ smoothic(
   optimizer = "nlm",
   kappa,
   tau,
+  max_it_vec,
   stepmax_nlm
 )
 }
@@ -72,6 +73,9 @@ Smaller values of \code{tau} bring the approximation closer to the absolute valu
 function, but this can cause the optimization to become unstable. Some issues with
 standard error calculation with smaller values of \code{tau} when using the Laplace
 distribution in the robust regression setting.}
+
+\item{max_it_vec}{Optional vector of length \code{steps_T} that contains the maximum number of iterations to be performed in each \eqn{\epsilon}-telescope
+step. If not supplied, \code{max_it} is the maximum number of iterations performed at each step.}
 
 \item{stepmax_nlm}{Optional maximum allowable scaled step length (positive scalar) to be passed to
 \code{\link{nlm}} if \code{optimizer = "nlm"}. If not supplied, default values in
