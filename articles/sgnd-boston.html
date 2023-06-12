@@ -33,7 +33,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">smoothic</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.1.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -89,20 +89,7 @@
     
 <p>To begin, load the package.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/meadhbh-oneill/smoothic" class="external-link">smoothic</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># For data manipulation and plotting if required</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Attaching package: 'dplyr'</span></span>
-<span><span class="co">#&gt; The following objects are masked from 'package:stats':</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;     filter, lag</span></span>
-<span><span class="co">#&gt; The following objects are masked from 'package:base':</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;     intersect, setdiff, setequal, union</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://tidyr.tidyverse.org" class="external-link">tidyr</a></span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/meadhbh-oneill/smoothic" class="external-link">smoothic</a></span><span class="op">)</span></span></code></pre></div>
 <div class="section level2">
 <h2 id="boston-housing-data">Boston Housing Data<a class="anchor" aria-label="anchor" href="#boston-housing-data"></a>
 </h2>
@@ -128,82 +115,51 @@ criterion.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Coefficients:</span></span>
 <span><span class="co">#&gt;                      Estimate         SEE        Z    Pvalue    </span></span>
-<span><span class="co">#&gt; intercept_0_beta   3.66772519  0.13426910  27.3162 &lt; 2.2e-16 ***</span></span>
-<span><span class="co">#&gt; crim_1_beta       -0.01580194  0.00237580  -6.6512 7.141e-09 ***</span></span>
+<span><span class="co">#&gt; intercept_0_beta   3.61044427  0.06216407  58.0793 &lt; 2.2e-16 ***</span></span>
+<span><span class="co">#&gt; crim_1_beta       -0.02118366  0.00521143  -4.0648 5.523e-05 ***</span></span>
 <span><span class="co">#&gt; zn_2_beta                   0           0        0         0    </span></span>
 <span><span class="co">#&gt; indus_3_beta                0           0        0         0    </span></span>
-<span><span class="co">#&gt; rm_4_beta          0.23057700  0.01994340  11.5616 &lt; 2.2e-16 ***</span></span>
-<span><span class="co">#&gt; age_5_beta        -0.00110315  0.00047957  -2.3003 0.0143075 *  </span></span>
-<span><span class="co">#&gt; rad_6_beta         0.00808499  0.00206059   3.9236 0.0001475 ***</span></span>
-<span><span class="co">#&gt; ptratio_7_beta    -0.02495418  0.00310490  -8.0370 1.826e-11 ***</span></span>
-<span><span class="co">#&gt; lnox_8_beta       -0.29877111  0.12797101  -2.3347 0.0131252 *  </span></span>
-<span><span class="co">#&gt; ldis_9_beta       -0.16492011  0.02831297  -5.8249 1.891e-07 ***</span></span>
-<span><span class="co">#&gt; ltax_10_beta      -0.19358455  0.01633747 -11.8491 &lt; 2.2e-16 ***</span></span>
-<span><span class="co">#&gt; llstat_11_beta    -0.17102998  0.02115487  -8.0847 1.470e-11 ***</span></span>
-<span><span class="co">#&gt; chast_12_beta      0.05416343  0.02081347   2.6023 0.0066696 ** </span></span>
-<span><span class="co">#&gt; intercept_0_alpha -8.30115112  1.97607892  -4.2008 6.065e-05 ***</span></span>
-<span><span class="co">#&gt; crim_1_alpha                0           0        0         0    </span></span>
+<span><span class="co">#&gt; rm_4_beta          0.23432703  0.01005602  23.3022 &lt; 2.2e-16 ***</span></span>
+<span><span class="co">#&gt; age_5_beta        -0.00108287  0.00034126  -3.1731 0.0010159 ** </span></span>
+<span><span class="co">#&gt; rad_6_beta         0.00883987  0.00230240   3.8394 0.0001196 ***</span></span>
+<span><span class="co">#&gt; ptratio_7_beta    -0.02595343  0.00259781  -9.9905 &lt; 2.2e-16 ***</span></span>
+<span><span class="co">#&gt; lnox_8_beta       -0.27596384  0.08565991  -3.2216 0.0008743 ***</span></span>
+<span><span class="co">#&gt; ldis_9_beta       -0.15979242  0.02289373  -6.9797 3.827e-10 ***</span></span>
+<span><span class="co">#&gt; ltax_10_beta      -0.18305620  0.01788194 -10.2369 &lt; 2.2e-16 ***</span></span>
+<span><span class="co">#&gt; llstat_11_beta    -0.17189746  0.01754920  -9.7952 &lt; 2.2e-16 ***</span></span>
+<span><span class="co">#&gt; chast_12_beta      0.04742476  0.02044784   2.3193 0.0114398 *  </span></span>
+<span><span class="co">#&gt; intercept_0_alpha -9.65560109  2.33819898  -4.1295 4.404e-05 ***</span></span>
+<span><span class="co">#&gt; crim_1_alpha       0.02418315  0.01595108   1.5161 0.0774511 .  </span></span>
 <span><span class="co">#&gt; zn_2_alpha                  0           0        0         0    </span></span>
-<span><span class="co">#&gt; indus_3_alpha               0           0        0         0    </span></span>
-<span><span class="co">#&gt; rm_4_alpha                  0           0        0         0    </span></span>
-<span><span class="co">#&gt; age_5_alpha                 0           0        0         0    </span></span>
-<span><span class="co">#&gt; rad_6_alpha        0.05451573  0.01525087   3.5746 0.0004329 ***</span></span>
+<span><span class="co">#&gt; indus_3_alpha     -0.03593507  0.02212563  -1.6241 0.0612273 .  </span></span>
+<span><span class="co">#&gt; rm_4_alpha        -0.21260532  0.10602689  -2.0052 0.0252643 *  </span></span>
+<span><span class="co">#&gt; age_5_alpha        0.00202455  0.00375011   0.5399 0.4561068    </span></span>
+<span><span class="co">#&gt; rad_6_alpha        0.03450701  0.01745587   1.9768 0.0270406 *  </span></span>
 <span><span class="co">#&gt; ptratio_7_alpha             0           0        0         0    </span></span>
-<span><span class="co">#&gt; lnox_8_alpha                0           0        0         0    </span></span>
-<span><span class="co">#&gt; ldis_9_alpha      -0.84905272  0.18435301  -4.6056 1.570e-05 ***</span></span>
-<span><span class="co">#&gt; ltax_10_alpha      0.85555837  0.33177396   2.5787 0.0070794 ** </span></span>
+<span><span class="co">#&gt; lnox_8_alpha      -0.73639081  0.83268318  -0.8844 0.2635357    </span></span>
+<span><span class="co">#&gt; ldis_9_alpha      -1.04264258  0.27821395  -3.7476 0.0001622 ***</span></span>
+<span><span class="co">#&gt; ltax_10_alpha      1.33406801  0.38896662   3.4298 0.0004563 ***</span></span>
 <span><span class="co">#&gt; llstat_11_alpha             0           0        0         0    </span></span>
-<span><span class="co">#&gt; chast_12_alpha              0           0        0         0    </span></span>
-<span><span class="co">#&gt; nu_0               0.27750939  0.11038836   2.5139 0.0083675 ** </span></span>
+<span><span class="co">#&gt; chast_12_alpha     0.11052718  0.29627589   0.3731 0.5756261    </span></span>
+<span><span class="co">#&gt; nu_0               0.30659864  0.10431138   2.9393 0.0020472 ** </span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt; Penalized Likelihood:</span></span>
-<span><span class="co">#&gt; [1] 228.3035</span></span>
+<span><span class="co">#&gt; [1] 215.5409</span></span>
 <span></span>
 <span><span class="va">fit</span><span class="op">$</span><span class="va">kappa</span> <span class="co"># shape estimate</span></span>
-<span><span class="co">#&gt; [1] 1.519839</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 1.558795</span></span></code></pre></div>
 <p>Plot the standardized coefficient values with respect to the
 epsilon-telescope.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">telescope_df</span> <span class="op">&lt;-</span> <span class="va">fit</span><span class="op">$</span><span class="va">telescope_df</span> <span class="co"># dataframe with standardized coefficient values for each epsilon in the telescope</span></span>
-<span></span>
-<span><span class="co"># Variable names (without the response &amp; intercept terms)</span></span>
-<span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">bostonhouseprice2</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1</span></span>
-<span><span class="va">names_coef</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">names_coef</span> <span class="op">&lt;-</span> <span class="va">names_coef</span><span class="op">[</span><span class="op">!</span><span class="op">(</span><span class="va">names_coef</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>  <span class="st">"intercept_0_beta"</span>,</span>
-<span>  <span class="st">"intercept_0_alpha"</span>,</span>
-<span>  <span class="st">"nu_0"</span></span>
-<span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span>
-<span></span>
-<span><span class="co"># Tidy dataframe for plotting</span></span>
-<span><span class="va">plot_df</span> <span class="op">&lt;-</span> <span class="va">telescope_df</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span></span>
-<span>    <span class="va">epsilon</span>,</span>
-<span>    <span class="fu"><a href="https://tidyselect.r-lib.org/reference/starts_with.html" class="external-link">contains</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"beta"</span>, <span class="st">"alpha"</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    <span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"beta_0"</span>, <span class="st">"alpha_0"</span><span class="op">)</span></span>
-<span>  <span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select_all.html" class="external-link">rename_all</a></span><span class="op">(</span><span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"epsilon"</span>, <span class="va">names_coef</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="co"># rename columns</span></span>
-<span>  <span class="fu"><a href="https://tidyr.tidyverse.org/reference/pivot_longer.html" class="external-link">pivot_longer</a></span><span class="op">(</span><span class="op">-</span><span class="va">epsilon</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>type <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/case_when.html" class="external-link">case_when</a></span><span class="op">(</span> <span class="co"># extract whether variable is location or scale</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"_beta"</span>, <span class="va">name</span><span class="op">)</span> <span class="op">~</span> <span class="st">"Location"</span>,</span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"alpha"</span>, <span class="va">name</span><span class="op">)</span> <span class="op">~</span> <span class="st">"Scale"</span></span>
-<span>  <span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>coef <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"_.*"</span>, <span class="st">""</span>, <span class="va">name</span><span class="op">)</span><span class="op">)</span> <span class="co"># extract variable name</span></span>
-<span></span>
-<span></span>
-<span><span class="co"># Plot</span></span>
-<span><span class="va">plot_df</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span></span>
-<span>    x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">epsilon</span><span class="op">)</span>, <span class="co"># log scale</span></span>
-<span>    y <span class="op">=</span> <span class="va">value</span>,</span>
-<span>    colour <span class="op">=</span> <span class="va">coef</span></span>
-<span>  <span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span><span class="va">type</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>y <span class="op">=</span> <span class="st">"Standardized Coefficient Value"</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_paths.html">plot_paths</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
 <p><img src="sgnd-boston_files/figure-html/unnamed-chunk-4-1.png" width="960"></p>
+<p>Plot the model-based conditional density curves.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_effects.html">plot_effects</a></span><span class="op">(</span><span class="va">fit</span>,</span>
+<span>             what <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"median"</span>, <span class="st">"ltax"</span>, <span class="st">"rm"</span>, <span class="st">"ldis"</span><span class="op">)</span>, <span class="co"># or "all" for all selected variables</span></span>
+<span>             density_range <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2.25</span>, <span class="fl">3.75</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p><img src="sgnd-boston_files/figure-html/unnamed-chunk-5-1.png" width="960"></p>
 </div>
   </main>
 </div>
