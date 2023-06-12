@@ -917,6 +917,7 @@ plot_effects <- function(obj,
 #' @import tidyr
 #' @importFrom purrr map_dbl
 #' @importFrom rlang .data
+#'
 #' @export
 plot_paths <- function(obj,
                        log_scale_x = TRUE,

@@ -13,7 +13,7 @@ Description: Implementation of the SIC epsilon-telescope method, either
     smoothly between both types of regression. See O'Neill and Burke (2022)
     "Robust Distributional Regression with Automatic Variable Selection" for more details.
     <arXiv:2212.07317>. This package also contains the data analyses from O'Neill and
-    Burke (2021). "Variable selection using a smooth information criterion for distributional regression models". <doi.org/10.1007/s11222-023-10204-8>.
+    Burke (2023). "Variable selection using a smooth information criterion for distributional regression models". <doi.org/10.1007/s11222-023-10204-8>.
 License: GPL-3
 URL: https://github.com/meadhbh-oneill/smoothic,
     https://meadhbh-oneill.github.io/smoothic/
