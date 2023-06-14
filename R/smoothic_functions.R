@@ -182,7 +182,7 @@ smoothic <- function(formula,
   }
 
   if (missing(max_it_vec)) {
-    max_it_vec <- c(rep(max_it, times = 10), rep(5, times = steps_T - 10)) # less steps as go through telescope
+    max_it_vec <- c(rep(max_it, times = 10), rep(10, times = steps_T - 10)) # less steps as go through telescope
   }
 
 
