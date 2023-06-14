@@ -4336,7 +4336,7 @@ printCoefmat_MON <- function(x, digits = max(3L, getOption("digits") - 2L), sign
       signif.stars <- signif.stars && any(pv[okP] < 0.1)
       if (signif.stars) {
         # MON
-        max_pv <- max(pv)
+        max_pv <- max(pv, na.rm = TRUE)
         if (max_pv < 1) {
           max_cut <- 1
         } else {max_cut <- ceiling(max_pv*2)/2}
