@@ -475,6 +475,7 @@ print.smoothic <- function(x, ...) {
 
 # print.summary.smoothic --------------------------------------------------
 #' @aliases print.summary.smoothic
+#' @importFrom stats symnum
 #' @export
 print.summary.smoothic <- function(x, ...) {
   cat("Call:\n")
@@ -4343,7 +4344,7 @@ printCoefmat_MON <- function(x, digits = max(3L, getOption("digits") - 2L), sign
 
         cutpoints_vec <- c(0, 0.001, 0.01, 0.05, 0.1, max_cut)
 
-        Signif <- symnum(pv,
+        Signif <- stats::symnum(pv,
           corr = FALSE, na = FALSE,
           cutpoints = cutpoints_vec,
           symbols = c("***", "**", "*", ".", " ")
