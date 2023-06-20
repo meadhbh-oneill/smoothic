@@ -36,8 +36,8 @@ when \code{family = "normal"}. If \code{family = "laplace"}, this corresponds to
 a robust regression with errors from the Laplace distribution.}
 
 \item{model}{The type of regression to be implemented, either \code{model = "mpr"}
-for multi-parameter regression, or \code{model = "spr"} for single parameter
-regression (i.e., classical normal linear regression). Defaults to \code{model="mpr"}.}
+for multi-parameter regression (i.e., location and scale), or \code{model = "spr"} for single parameter
+regression (i.e., location only). Defaults to \code{model="mpr"}.}
 
 \item{lambda}{Value of penalty tuning parameter. Suggested values are
 \code{"log(n)"} and \code{"2"} for the BIC and AIC respectively. Defaults to

@@ -27,7 +27,7 @@ pcancer
 \description{
 Data, which come from a study by Stamey et al. (1989), examining the
 correlation between the level of prostate-specific antigen (PSA) and
-various clinical measures in men who were about the receive a radical prostatectomy.
+various clinical measures in men who were about to receive a radical prostatectomy.
 }
 \references{
 Stamey, T. A., Kabalin, J. N., McNeal, J. E., Johnstone, I. M., Freiha, F., Redwine,

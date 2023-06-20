@@ -12,7 +12,7 @@ of a call to \code{\link{smoothic}}.}
 
 \item{what}{The covariate effects to be plotted, default is \code{what = "all"}. The user
 may supply a vector of covariate names to be plotted (only covariates selected in the final
-model can be plotted). Additionally, a "baseline" or "average" individual can be plotted by
+model can be plotted). Additionally, a \dQuote{baseline} or \dQuote{average} individual can be plotted by
 supplying \code{what = "median"}.}
 
 \item{density_range}{Optional range for which the density curves should be plotted.}
@@ -25,7 +25,7 @@ This function plots the model-based conditional density curves for
 different effect combinations. For example, take a particular covariate that is selected
 in the final model. The other selected covariates are fixed at their median values and then
 the plotted red and blue densities correspond to the modification of the chosen
-covariate as "low" (Q1, first quartile) and "high" (Q3, third quartile).
+covariate as \dQuote{low} (Q1, first quartile) and \dQuote{high} (Q3, third quartile).
 }
 \examples{
 # Sniffer Data --------------------

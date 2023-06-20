@@ -2,7 +2,7 @@
 % Please edit documentation in R/smoothic_functions.R
 \name{plot_paths}
 \alias{plot_paths}
-\title{Plot the epsilon-telescope coefficient paths}
+\title{Plot the \eqn{\epsilon}-telescope coefficient paths}
 \usage{
 plot_paths(
   obj,
@@ -16,19 +16,19 @@ plot_paths(
 of a call to \code{\link{smoothic}}.}
 
 \item{log_scale_x}{Default is \code{log_scale_x = TRUE}, which uses a log scale
-on the x-axis. If \code{log_scale_x = FALSE}, then the raw values of the epsilon-telescope are plotted.}
+on the x-axis. If \code{log_scale_x = FALSE}, then the raw values of the \eqn{\epsilon}-telescope are plotted.}
 
-\item{log_scale_x_pretty}{Default is \code{log_scale_x_pretty = TRUE}, where the x-axis labels are "pretty".
+\item{log_scale_x_pretty}{Default is \code{log_scale_x_pretty = TRUE}, where the x-axis labels are \dQuote{pretty}.
 \code{epsilon_1} and \code{epsilon_T} must be a number to the power of 10 for this to apply.}
 
 \item{facet_scales}{Default is \code{facet_scales = "fixed"}. This is supplied to \code{\link{facet_wrap}}.}
 }
 \value{
-A plot of the standardized coefficient values through the epsilon-telescope.
+A plot of the standardized coefficient values through the \eqn{\epsilon}-telescope.
 }
 \description{
 This function plots the standardized coefficient values with respect
-to the epsilon-telescope for the location (and dispersion) components.
+to the \eqn{\epsilon}-telescope for the location (and dispersion) components.
 }
 \examples{
 # Sniffer Data --------------------

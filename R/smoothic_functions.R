@@ -17,8 +17,8 @@
 #' when \code{family = "normal"}. If \code{family = "laplace"}, this corresponds to
 #' a robust regression with errors from the Laplace distribution.
 #' @param model The type of regression to be implemented, either \code{model = "mpr"}
-#' for multi-parameter regression, or \code{model = "spr"} for single parameter
-#' regression (i.e., classical normal linear regression). Defaults to \code{model="mpr"}.
+#' for multi-parameter regression (i.e., location and scale), or \code{model = "spr"} for single parameter
+#' regression (i.e., location only). Defaults to \code{model="mpr"}.
 #' @param lambda Value of penalty tuning parameter. Suggested values are
 #' \code{"log(n)"} and \code{"2"} for the BIC and AIC respectively. Defaults to
 #' \code{lambda ="log(n)"} for the BIC case.
@@ -613,13 +613,13 @@ predict.smoothic <- function(object,
 #' different effect combinations. For example, take a particular covariate that is selected
 #' in the final model. The other selected covariates are fixed at their median values and then
 #' the plotted red and blue densities correspond to the modification of the chosen
-#' covariate as "low" (Q1, first quartile) and "high" (Q3, third quartile).
+#' covariate as \dQuote{low} (Q1, first quartile) and \dQuote{high} (Q3, third quartile).
 #'
 #' @param obj An object of class \dQuote{\code{smoothic}} which is the result
 #' of a call to \code{\link{smoothic}}.
 #' @param what The covariate effects to be plotted, default is \code{what = "all"}. The user
 #' may supply a vector of covariate names to be plotted (only covariates selected in the final
-#' model can be plotted). Additionally, a "baseline" or "average" individual can be plotted by
+#' model can be plotted). Additionally, a \dQuote{baseline} or \dQuote{average} individual can be plotted by
 #' supplying \code{what = "median"}.
 #' @param density_range Optional range for which the density curves should be plotted.
 #'
@@ -919,20 +919,20 @@ plot_effects <- function(obj,
 
 
 # plot_paths --------------------------------------------------------------
-#' @title Plot the epsilon-telescope coefficient paths
+#' @title Plot the \eqn{\epsilon}-telescope coefficient paths
 #'
 #' @description This function plots the standardized coefficient values with respect
-#' to the epsilon-telescope for the location (and dispersion) components.
+#' to the \eqn{\epsilon}-telescope for the location (and dispersion) components.
 #'
 #' @param obj An object of class \dQuote{\code{smoothic}} which is the result
 #' of a call to \code{\link{smoothic}}.
 #' @param log_scale_x Default is \code{log_scale_x = TRUE}, which uses a log scale
-#' on the x-axis. If \code{log_scale_x = FALSE}, then the raw values of the epsilon-telescope are plotted.
-#' @param log_scale_x_pretty Default is \code{log_scale_x_pretty = TRUE}, where the x-axis labels are "pretty".
+#' on the x-axis. If \code{log_scale_x = FALSE}, then the raw values of the \eqn{\epsilon}-telescope are plotted.
+#' @param log_scale_x_pretty Default is \code{log_scale_x_pretty = TRUE}, where the x-axis labels are \dQuote{pretty}.
 #' \code{epsilon_1} and \code{epsilon_T} must be a number to the power of 10 for this to apply.
 #' @param facet_scales Default is \code{facet_scales = "fixed"}. This is supplied to \code{\link{facet_wrap}}.
 #'
-#' @return A plot of the standardized coefficient values through the epsilon-telescope.
+#' @return A plot of the standardized coefficient values through the \eqn{\epsilon}-telescope.
 #'
 #' @author Meadhbh O'Neill
 #'
