@@ -63,8 +63,8 @@
 #'
 #' @author Meadhbh O'Neill
 #'
-#' @references O'Neill, M. and Burke, K. (2021) Variable Selection Using a Smooth
-#' Information Criterion for Multi-Parameter Regression Models. <arXiv:2110.02643>
+#' @references O'Neill, M. and Burke, K. (2023) Variable selection using a smooth information
+#' criterion for distributional regression models. <doi:10.1007/s11222-023-10204-8>
 #'
 #' O'Neill, M. and Burke, K. (2022) Robust Distributional Regression with
 #' Automatic Variable Selection. <arXiv:2212.07317>
