@@ -10,7 +10,7 @@ A data frame with 50 rows and 7 variables:
   \item{violent}{reported violent crime rate per 100,000 residents}
   \item{funding}{annual police funding per resident ($)}
   \item{hs}{percentage of people 25 years+ with 4 years of high school}
-  \item{not_hs}{percentage of 16 to 19 year-olds not in highschool and not highschool graduates}
+  \item{not_hs}{percentage of 16 to 19 year-olds not in high school and not high school graduates}
   \item{college}{percentage of 18 to 24 year-olds in college}
   \item{college4}{percentage of people 25 years+ with at least 4 years of college}
   \item{crime_rate}{total overall reported crime rate per 1 million residents}

@@ -439,6 +439,7 @@ summary.smoothic <- function(object, ...) {
     model = object$model,
     coefmat = coefmat,
     plike = unname(object$plike),
+    kappa = object$kappa,
     call = object$call
   )
   class(out) <- "summary.smoothic"
@@ -511,6 +512,12 @@ print.summary.smoothic <- function(x, ...) {
       )
     }
   )
+
+  if(kappa_lgl == "yes_kappa") {
+    cat("Kappa Estimate:\n")
+    print(x$kappa)
+  }
+
   cat("Penalized Likelihood:\n")
   print(x$plike) # BIC or AIC = -2*plike
 }
