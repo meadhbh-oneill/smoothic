@@ -6,7 +6,7 @@ Depends: R (>= 3.5.0)
 Authors@R: c(person("Meadhbh", "O'Neill", email = "meadhbhon@gmail.com", role = c("aut", "cre")), person("Kevin", "Burke", role = c("aut")))
 Maintainer: Meadhbh O'Neill <meadhbhon@gmail.com>
 Description: Implementation of the SIC epsilon-telescope method, either
-    using single or distributional (multi-parameter) regression. Includes classical regression
+    using single or distributional (multiparameter) regression. Includes classical regression
     with normally distributed errors and robust regression, where the errors are from
     the Laplace distribution. The "smooth generalized normal distribution" is used,
     where the estimation of an additional shape parameter allows the user to move

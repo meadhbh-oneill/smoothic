@@ -25,6 +25,9 @@ Data examining the factors that impact the amount of hydrocarbon vapour released
 when gasoline is pumped into a tank.
 }
 \references{
+Bedrick, E.J. (2000). Checking for lack of fit in linear models with parametric
+variance functions. Technometrics 42 (3), 226–236.
+
 Weisberg, S. (2014). Applied Linear Regression, 4th edition. Hoboken NJ: Wiley.
 }
 \keyword{datasets}

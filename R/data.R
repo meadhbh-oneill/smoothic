@@ -43,6 +43,9 @@
 #' @source \url{https://CRAN.R-project.org/package=alr4}
 #'
 #' @references
+#' Bedrick, E.J. (2000). Checking for lack of fit in linear models with parametric
+#' variance functions. Technometrics 42 (3), 226–236.
+#'
 #' Weisberg, S. (2014). Applied Linear Regression, 4th edition. Hoboken NJ: Wiley.
 "sniffer"
 

@@ -1,7 +1,7 @@
 #' @title Variable Selection Using a Smooth Information Criterion (SIC)
 #'
 #' @description Implements the SIC \eqn{\epsilon}-telescope method, either using
-#' single or multi-parameter regression. Returns estimated coefficients, estimated
+#' single or multiparameter regression. Returns estimated coefficients, estimated
 #' standard errors (SEE) and the value of the penalized likelihood function.
 #' Note that the function will scale the predictors to have unit variance, however,
 #' the final estimates are converted back to their original scale.
@@ -12,12 +12,12 @@
 #' @param data A data frame containing the variables in the model; the data frame
 #' should be unstandardized.
 #' @param family The family of the model, default is \code{family = "sgnd"} for the
-#' "Smooth Generalized Distribution" where the shape parameter kappa is also
+#' "Smooth Generalized Normal Distribution" where the shape parameter kappa is also
 #' estimated. Classical regression with normally distributed errors is performed
 #' when \code{family = "normal"}. If \code{family = "laplace"}, this corresponds to
 #' a robust regression with errors from the Laplace distribution.
 #' @param model The type of regression to be implemented, either \code{model = "mpr"}
-#' for multi-parameter regression (i.e., location and scale), or \code{model = "spr"} for single parameter
+#' for multiparameter regression (i.e., location and scale), or \code{model = "spr"} for single parameter
 #' regression (i.e., location only). Defaults to \code{model="mpr"}.
 #' @param lambda Value of penalty tuning parameter. Suggested values are
 #' \code{"log(n)"} and \code{"2"} for the BIC and AIC respectively. Defaults to

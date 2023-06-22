@@ -30,13 +30,13 @@ with response on the left hand side and the model variables on the right hand si
 should be unstandardized.}
 
 \item{family}{The family of the model, default is \code{family = "sgnd"} for the
-"Smooth Generalized Distribution" where the shape parameter kappa is also
+"Smooth Generalized Normal Distribution" where the shape parameter kappa is also
 estimated. Classical regression with normally distributed errors is performed
 when \code{family = "normal"}. If \code{family = "laplace"}, this corresponds to
 a robust regression with errors from the Laplace distribution.}
 
 \item{model}{The type of regression to be implemented, either \code{model = "mpr"}
-for multi-parameter regression (i.e., location and scale), or \code{model = "spr"} for single parameter
+for multiparameter regression (i.e., location and scale), or \code{model = "spr"} for single parameter
 regression (i.e., location only). Defaults to \code{model="mpr"}.}
 
 \item{lambda}{Value of penalty tuning parameter. Suggested values are
@@ -93,7 +93,7 @@ A list with estimates and estimated standard errors.
 }
 \description{
 Implements the SIC \eqn{\epsilon}-telescope method, either using
-single or multi-parameter regression. Returns estimated coefficients, estimated
+single or multiparameter regression. Returns estimated coefficients, estimated
 standard errors (SEE) and the value of the penalized likelihood function.
 Note that the function will scale the predictors to have unit variance, however,
 the final estimates are converted back to their original scale.
