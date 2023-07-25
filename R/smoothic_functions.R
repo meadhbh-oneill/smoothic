@@ -742,7 +742,20 @@ predict.smoothic <- function(object,
 #' @export
 plot_effects <- function(obj,
                          what = "all",
+                         show_average_indiv = TRUE, # show the average individual?
+                         p = c(0.25, 0.75), # quantiles to be plotted
+                         covariate_fix, # specific values of the covariate densities (named vector)
                          density_range) {
+  quantile_values <- p
+
+  if (length(quantile_values) != 2) {
+    stop("Error: p must be length 2 (lower and upper quantile values)")
+  }
+
+  if (any(quantile_values > 1) | any(quantile_values < 0)) {
+    stop("Error: values of p must be between 0 and 1")
+  }
+
   fit_obj <- obj
   n <- length(fit_obj$y)
   p <- ncol(fit_obj$x) # not including intercept
@@ -766,11 +779,19 @@ plot_effects <- function(obj,
     "inter"
   )
 
-  # Any binary
-  bin_unique <- as.data.frame(fit_obj$x) %>%
-    map_dbl(~ length(unique(.x)))
-
-  bin_pos <- which(bin_unique == 2)
+  # Estimates (theta)
+  names_coef_keep <- theta_final %>%
+    as_tibble(.name_repair = "minimal") %>%
+    add_column(
+      coeff = names_coef_labels_theta,
+      .before = 1
+    ) %>%
+    filter(
+      .data$coeff != "inter",
+      .data$value != 0
+    ) %>%
+    pull(.data$coeff) %>%
+    unique()
 
   # Response value
   response_val <- as.character(fit_obj$call$formula[[2]])
@@ -781,21 +802,98 @@ plot_effects <- function(obj,
   colnames(dataset_raw)[p + 1] <- response_val
 
   # Calculate
-  levels_summary <- c("median", "Q1", "Q3")
-  levels_quant <- c("Q1", "Q3")
+  levels_summary <- c("average", "lower", "upper")
+  levels_quant <- c("lower", "upper")
   names_coef_labels <- colnames(dataset_raw)[-(p + 1)]
 
+  names_coef_response_keep <- c("response", names_coef_keep)
+  levels_response_quant <- c("response", levels_quant)
+
+  # What is to be plotted
+  if ("all" %in% what) {
+    coef_plot_names <- names_coef_keep
+  } else if (any(!(what %in% names_coef_keep))) {
+    stop("Error: please choose a variable that is selected in the model")
+  } else {
+    coef_plot_names <- what
+  }
+
+  if (show_average_indiv == TRUE) {
+    coef_plot_names <- c("response", coef_plot_names)
+  }
+
+  # Any binary
+  bin_unique <- as.data.frame(fit_obj$x) %>%
+    map_dbl(~ length(unique(.x)))
+
+  bin_pos <- which(bin_unique == 2)
+
+  # Values to fix the covariates to
+  if (missing(covariate_fix)) {
+    fix_row <- dataset_raw %>%
+      dplyr::select(-all_of(response_val)) %>%
+      reframe(across(everything(), ~ median(.))) %>% # use median values if vector of values not supplied
+      add_column(typee = factor("fix_value"), .before = 1)
+  } else if (!missing(covariate_fix)) {
+    if (!IsNamedVector(covariate_fix)) { # vector should have covariate names
+      stop("Error: covariate_fix should be a vector with variable names and numeric values")
+    }
+
+    covariate_fix_names <- names(covariate_fix)
+    # make sure supplied names are actual variable names
+    if (any(!(covariate_fix_names %in% names_coef_keep))) {
+      stop("Error: only the variables selected in the final model should appear in covariate_fix")
+    }
+
+    # make sure fix values are within the range of each variable
+    df_range <- dataset_raw %>%
+      select(all_of(covariate_fix_names)) %>%
+      reframe(across(everything(), ~ c(min(.), max(.))))
+
+    range_lgl <- map2_lgl(.x = covariate_fix,
+                      .y = df_range, ~ {
+                      lgl_val <- (.x >= .y[1]) & (.x <= .y[2])
+                      lgl_val
+                      })
+    if (any(range_lgl == FALSE)) {
+      stop("Error: the values of covariate_fix should be within the range of each variable")
+    }
+
+    # make the row of fixed values
+    fix_row <- dataset_raw %>%
+      dplyr::select(-all_of(response_val)) %>%
+      reframe(across(everything(), ~ median(.))) # use median values if vector of values not supplied
+
+    fix_row_vec <- fix_row %>%
+      unlist()
+
+    # if values supplied, then insert them
+    for (i in seq_along(covariate_fix)) {
+      name_now <- names(covariate_fix[i])
+
+      pos_now <- which(names(fix_row_vec) == name_now)
+
+      fix_row_vec[pos_now] <- covariate_fix[i]
+    }
+
+    fix_row <- as.matrix(fix_row)
+    fix_row[1,] <- fix_row_vec
+    fix_row <- as_tibble(as.data.frame(fix_row)) %>%
+      add_column(typee = factor("fix_value"), .before = 1) # tibble output
+  }
 
   df_summary <- dataset_raw %>%
     reframe(across(everything(), ~ c(
       median(.),
-      quantile(., probs = c(0.25, 0.75))
+      quantile(., probs = quantile_values) # input p
     ))) %>%
     add_column(
       typee = factor(levels_summary, levels = levels_summary),
       .before = 1
     ) %>%
-    dplyr::select(-all_of(response_val))
+    dplyr::select(-all_of(response_val)) %>%
+    bind_rows(.,
+              fix_row)
 
   # Change binary
   for (i in bin_pos) {
@@ -816,25 +914,8 @@ plot_effects <- function(obj,
     ) %>%
     mutate(coeff = factor(.data$coeff, levels = names_coef_labels))
 
-  # Estimates (theta)
-  names_coef_keep <- theta_final %>%
-    as_tibble(.name_repair = "minimal") %>%
-    add_column(
-      coeff = names_coef_labels_theta,
-      .before = 1
-    ) %>%
-    filter(
-      .data$coeff != "inter",
-      .data$value != 0
-    ) %>%
-    pull(.data$coeff) %>%
-    unique()
-
-  names_coef_response_keep <- c("response", names_coef_keep)
-  levels_response_quant <- c("response", levels_quant)
-
   df_average_indiv <- df_summary %>%
-    filter(.data$typee == "median") %>%
+    filter(.data$typee == "average") %>%
     add_column(
       inter = 1,
       .before = 2
@@ -855,16 +936,16 @@ plot_effects <- function(obj,
 
       baseline <- df_summary_t %>%
         filter(.data$coeff == coef_now) %>%
-        dplyr::select(.data$Q1, .data$Q3) %>%
+        dplyr::select(.data$lower, .data$upper) %>%
         unlist()
 
-      mean_vec <- df_summary %>%
-        filter(.data$typee == "median") %>%
+      fix_vec <- df_summary %>%
+        filter(.data$typee == "fix_value") %>% # values that are specified, or else median if not specified
         dplyr::select(-.data$typee)
 
       new_df <- rbind(
-        mean_vec,
-        mean_vec
+        fix_vec,
+        fix_vec
       )
       new_df[, which(colnames(new_df) == coef_now)] <- baseline
       new_df %>%
@@ -890,6 +971,12 @@ plot_effects <- function(obj,
       coeff = factor(.data$coeff, levels = names_coef_response_keep),
       typee = factor(.data$typee, levels = levels_response_quant)
     )
+  # return dist_est in final object so can make sure everything ok
+  df_dist_est_out <- df_dist_est %>%
+    dplyr::select(.data$coeff, .data$typee, all_of(names_coef_keep)) %>%
+    dplyr::filter(.data$coeff %in% coef_plot_names) %>%
+    mutate(coeff = recode_factor(.data$coeff, "response" = "average"),
+           typee = recode_factor(.data$typee, "response" = "average"))
 
   df_dist_est_mat <- df_dist_est %>%
     dplyr::select(-c(.data$coeff, .data$typee)) %>%
@@ -944,39 +1031,38 @@ plot_effects <- function(obj,
       typee = factor(.data$typee, levels = levels_response_quant)
     )
 
+  labels_facets <- c("average", names_coef_keep)
+  names(labels_facets) <- names_coef_response_keep
+
+  names_coef_input <- c("average", names_coef_keep)
+
+  # label quantile values according to p input vector (lower, upper)
+  levels_resquant_p <- c("response", quantile_values)
+  names(levels_resquant_p) <- c("response", levels_quant)
+
+  levels_quant_p <- levels_resquant_p[2:3]
+
   col_pal_typee <- c(
     "black",
     "#E41A1C", # red
     "#0072B2"
   ) # blue
-  names(col_pal_typee) <- levels_response_quant
+  names(col_pal_typee) <- levels_resquant_p
 
   fill_pal_typee <- c(
     "NA",
     "#E41A1C", # red
     "#0072B2"
   ) # blue
-  names(fill_pal_typee) <- levels_response_quant
+  names(fill_pal_typee) <- levels_resquant_p
 
-  labels_facets <- c("median", names_coef_keep)
-  names(labels_facets) <- names_coef_response_keep
-
-  names_coef_input <- c("median", names_coef_keep)
-
-  if ("all" %in% what) {
-    coef_plot_names <- names_coef_response_keep
-  } else if (any(!(what %in% names_coef_input))) {
-    stop("Error: please choose a variable that is selected in the model, or 'median' for an average individual")
-  } else {
-    coef_plot_names <- what
-    coef_plot_names[which(coef_plot_names == "median")] <- "response"
-  }
 
   # Remove tail values less that 1e-5
   df_sgnd_rough <- df_sgnd %>%
     mutate(y_rough = ifelse(.data$y < 1e-5, NA, .data$y)) %>%
     filter(.data$coeff %in% coef_plot_names) %>%
-    mutate(coeff = factor(.data$coeff, levels = coef_plot_names))
+    mutate(coeff = factor(.data$coeff, levels = coef_plot_names)) %>%
+    mutate(typee = recode_factor(typee, !!!levels_resquant_p))
 
 
   fig_effects <- df_sgnd_rough %>%
@@ -995,18 +1081,19 @@ plot_effects <- function(obj,
     geom_ribbon(aes(ymin = 0, ymax = .data$y_rough),
       alpha = 0.25
     ) +
-    scale_colour_manual(values = col_pal_typee, breaks = levels_quant) +
-    scale_fill_manual(values = fill_pal_typee, breaks = levels_quant) +
+    scale_colour_manual(values = col_pal_typee, breaks = levels_quant_p, name = "Quantile") +
+    scale_fill_manual(values = fill_pal_typee, breaks = levels_quant_p, name = "Quantile") +
     theme_bw() +
     scale_x_continuous(expand = expansion(mult = c(0.01, 0.01))) +
     scale_y_continuous(expand = expansion(mult = c(0, 0.25))) +
     theme(
-      legend.title = element_blank(),
+      # legend.title = element_blank(),
       axis.title.y = element_blank(),
       axis.text.y = element_blank(),
       axis.ticks.y = element_blank()
     ) +
     labs(x = response_val)
+  fig_effects$covariate_vals <- df_dist_est_out
   fig_effects
 }
 
@@ -1155,6 +1242,10 @@ plot_paths <- function(obj,
   fig_paths
 }
 
+# Check that vector has names for plot_effects function
+IsNamedVector <- function(VECTOR) {
+  is.vector(VECTOR) & is.numeric(VECTOR) & !is.null(names(VECTOR)) & !any(is.na(names(VECTOR)))
+  }
 
 # Calculate mode
 Mode_calc <- function(x) {
