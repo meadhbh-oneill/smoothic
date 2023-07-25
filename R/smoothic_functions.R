@@ -175,6 +175,10 @@ smoothic <- function(formula,
     stepmax_nlm <- NA
   }
 
+  if (steps_T < 10) {
+    stop("Error: steps_T must be greater than 10")
+  }
+
   if (!missing(max_it_vec)) {
     if (!(length(max_it_vec) == steps_T)) {
       stop("Error: max_it_vec vector must be same length as steps_T")
@@ -488,10 +492,66 @@ print.summary.smoothic <- function(x, ...) {
 
   kappa_lgl <- ifelse(x$family == "sgnd", "yes_kappa", "no_kappa")
 
-  switch(kappa_lgl,
+  # split coefmat into location, scale and shape
+  names_coefmat <- row.names(x$coefmat)
+  loc_ind <- grep("_beta", names_coefmat)
+  scale_ind <- grep("alpha", names_coefmat)
+  shape_ind <- grep("nu_0", names_coefmat)
+
+  coefmat_loc <- x$coefmat[loc_ind, ]
+
+  if (x$model == "mpr") {
+    coefmat_scale <- x$coefmat[scale_ind, ]
+  } else if (x$model == "spr") {
+    coefmat_scale <- matrix(x$coefmat[shape_ind, ], nrow = 1) # if scale constant returns numeric, so need to convert to matrix
+    rownames(coefmat_scale) <- "intercept_0_alpha"
+    colnames(coefmat_scale) <- colnames(coefmat_loc)
+  }
+
+  coefmat_shape <- matrix(x$coefmat[shape_ind, ], nrow = 1)
+  rownames(coefmat_shape) <- "intercept_0_nu   "
+  colnames(coefmat_shape) <- colnames(coefmat_loc)
+
+
+  switch(kappa_lgl, # if shape is estimated, then include nu, kappa in the output
     yes_kappa = {
       cat("\nCoefficients:\n")
-      printCoefmat_MON(x$coefmat,
+      cat("\n")
+      cat("Location:\n")
+      printCoefmat_MON(coefmat_loc, # print the location
+        cs.ind = 1:2,
+        tst.ind = 3,
+        P.values = TRUE,
+        has.Pvalue = TRUE,
+        signif.legend = FALSE,
+        na.print = "0" # change NA to 0 for printing
+      )
+
+      cat("\n")
+      cat("Scale:\n")
+      printCoefmat_MON(coefmat_scale, # print the scale
+        cs.ind = 1:2,
+        tst.ind = 3,
+        P.values = TRUE,
+        has.Pvalue = TRUE,
+        signif.legend = FALSE,
+        na.print = "0" # change NA to 0 for printing
+      )
+
+      cat("\n")
+      cat("Shape:\n")
+      printCoefmat_MON(coefmat_shape, # print the shape
+        cs.ind = 1:2,
+        tst.ind = 3,
+        P.values = TRUE,
+        has.Pvalue = TRUE,
+        signif.legend = FALSE,
+        na.print = "0" # change NA to 0 for printing
+      )
+
+      # print signif stars
+      cat("\n")
+      printCoefmat_MON_stars(x$coefmat, # overall legend, just the stars
         cs.ind = 1:2,
         tst.ind = 3,
         P.values = TRUE,
@@ -502,7 +562,30 @@ print.summary.smoothic <- function(x, ...) {
     },
     no_kappa = {
       cat("\nCoefficients:\n")
-      printCoefmat_MON(x$coefmat[-nrow(x$coefmat), ], # remove nu_0
+      cat("\n")
+      cat("Location:\n")
+      printCoefmat_MON(coefmat_loc,
+        cs.ind = 1:2,
+        tst.ind = 3,
+        P.values = TRUE,
+        has.Pvalue = TRUE,
+        signif.legend = FALSE,
+        na.print = "0" # change NA to 0 for printing
+      )
+
+      cat("\n")
+      cat("Scale:\n")
+      printCoefmat_MON(coefmat_scale,
+        cs.ind = 1:2,
+        tst.ind = 3,
+        P.values = TRUE,
+        has.Pvalue = TRUE,
+        signif.legend = FALSE,
+        na.print = "0" # change NA to 0 for printing
+      )
+      cat("\n")
+      # print signif stars
+      printCoefmat_MON_stars(x$coefmat[-nrow(x$coefmat), ], # overall legend, remove nu_0
         cs.ind = 1:2,
         tst.ind = 3,
         P.values = TRUE,
@@ -512,14 +595,17 @@ print.summary.smoothic <- function(x, ...) {
       )
     }
   )
-
-  if(kappa_lgl == "yes_kappa") {
+  cat("\n")
+  if (kappa_lgl == "yes_kappa") {
     cat("Kappa Estimate:\n")
     print(x$kappa)
   }
 
   cat("Penalized Likelihood:\n")
   print(x$plike) # BIC or AIC = -2*plike
+
+  cat("IC Value:\n")
+  print(-2 * x$plike) # BIC or AIC = -2*plike
 }
 
 # predict.smoothic --------------------------------------------------------
@@ -965,10 +1051,14 @@ plot_paths <- function(obj,
                        log_scale_x = TRUE,
                        log_scale_x_pretty = TRUE,
                        facet_scales = "fixed") {
+  if (log_scale_x == FALSE & log_scale_x_pretty == TRUE) {
+    stop("Error: if log_scale_x = FALSE, then set log_scale_x_pretty = FALSE")
+  }
+
   fit_obj <- obj
   telescope_df <- fit_obj$telescope_df
 
-  if (nrow(telescope_df) < 20) {
+  if (nrow(telescope_df) < 10) {
     warning("Ensure an adequate number of steps_T are used")
   }
 
@@ -1003,6 +1093,10 @@ plot_paths <- function(obj,
   } else {
     plot_df <- plot_df_prep %>%
       mutate(epsilon_plot = .data$epsilon)
+    x_label <- "epsilon"
+  }
+
+  if (log_scale_x == TRUE & log_scale_x_pretty == TRUE) {
     x_label <- "epsilon"
   }
 
@@ -2690,32 +2784,35 @@ nr_penalty <- function(theta,
 
   ## Information Matrix --
   ## Beta
-  Sigma_beta <- diag(c(
-    0,
-    (lambda_beta / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (beta1_p^2))) / ((beta1_p^2 + epsilon^2)^3))
-  ),
-  nrow = p1 + 1,
-  ncol = p1 + 1
+  Sigma_beta <- diag(
+    c(
+      0,
+      (lambda_beta / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (beta1_p^2))) / ((beta1_p^2 + epsilon^2)^3))
+    ),
+    nrow = p1 + 1,
+    ncol = p1 + 1
   )
   I_beta <- ((t(x1 * c(W_beta))) %*% x1) + Sigma_beta
 
   ## Alpha
-  Sigma_alpha <- diag(c(
-    0,
-    (lambda_alpha / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (alpha1_p^2))) / ((alpha1_p^2 + epsilon^2)^3))
-  ),
-  nrow = p2 + 1,
-  ncol = p2 + 1
+  Sigma_alpha <- diag(
+    c(
+      0,
+      (lambda_alpha / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (alpha1_p^2))) / ((alpha1_p^2 + epsilon^2)^3))
+    ),
+    nrow = p2 + 1,
+    ncol = p2 + 1
   )
   I_alpha <- ((t(x2 * c(W_alpha))) %*% x2) + Sigma_alpha
 
   ## Nu
-  Sigma_nu <- diag(c(
-    0,
-    (lambda_nu / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (nu1_p^2))) / ((nu1_p^2 + epsilon^2)^3))
-  ),
-  nrow = p3 + 1,
-  ncol = p3 + 1
+  Sigma_nu <- diag(
+    c(
+      0,
+      (lambda_nu / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (nu1_p^2))) / ((nu1_p^2 + epsilon^2)^3))
+    ),
+    nrow = p3 + 1,
+    ncol = p3 + 1
   )
   I_nu <- ((t(x3 * c(W_nu + W_c_tilde))) %*% x3) + Sigma_nu # addition of derivative of c_tilde
 
@@ -2989,32 +3086,35 @@ information_matrices_fullopt <- function(theta,
 
   # Penalized Observed Information Matrix ----
   ## Beta
-  Sigma_beta <- diag(c(
-    0,
-    (lambda_beta / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (beta1_p^2))) / ((beta1_p^2 + epsilon^2)^3))
-  ),
-  nrow = p1 + 1,
-  ncol = p1 + 1
+  Sigma_beta <- diag(
+    c(
+      0,
+      (lambda_beta / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (beta1_p^2))) / ((beta1_p^2 + epsilon^2)^3))
+    ),
+    nrow = p1 + 1,
+    ncol = p1 + 1
   )
   I_beta <- ((t(x1 * c(W_beta))) %*% x1) + Sigma_beta
 
   ## Alpha
-  Sigma_alpha <- diag(c(
-    0,
-    (lambda_alpha / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (alpha1_p^2))) / ((alpha1_p^2 + epsilon^2)^3))
-  ),
-  nrow = p2 + 1,
-  ncol = p2 + 1
+  Sigma_alpha <- diag(
+    c(
+      0,
+      (lambda_alpha / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (alpha1_p^2))) / ((alpha1_p^2 + epsilon^2)^3))
+    ),
+    nrow = p2 + 1,
+    ncol = p2 + 1
   )
   I_alpha <- ((t(x2 * c(W_alpha))) %*% x2) + Sigma_alpha
 
   ## Nu
-  Sigma_nu <- diag(c(
-    0,
-    (lambda_nu / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (nu1_p^2))) / ((nu1_p^2 + epsilon^2)^3))
-  ),
-  nrow = p3 + 1,
-  ncol = p3 + 1
+  Sigma_nu <- diag(
+    c(
+      0,
+      (lambda_nu / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (nu1_p^2))) / ((nu1_p^2 + epsilon^2)^3))
+    ),
+    nrow = p3 + 1,
+    ncol = p3 + 1
   )
   I_nu <- ((t(x3 * c(W_nu + W_c_tilde))) %*% x3) + Sigma_nu # addition of derivative of c_tilde
 
@@ -3071,36 +3171,38 @@ information_matrices_numDeriv <- function(theta,
                                           lambda_nu) {
   list_general <- list_family$general
 
-  observed_information_penalized <- tryCatch(-numDeriv::hessian(likelihood_penalized, # negative second deriv
-    theta,
-    x1 = x1,
-    x2 = x2,
-    x3 = x3,
-    y = y,
-    tau = tau,
-    epsilon = epsilon,
-    list_general = list_general,
-    method_c_tilde = method_c_tilde,
-    kappa_omega = kappa_omega,
-    lambda_beta = lambda_beta,
-    lambda_alpha = lambda_alpha,
-    lambda_nu = lambda_nu
-  ),
-  error = function(err) NA
+  observed_information_penalized <- tryCatch(
+    -numDeriv::hessian(likelihood_penalized, # negative second deriv
+      theta,
+      x1 = x1,
+      x2 = x2,
+      x3 = x3,
+      y = y,
+      tau = tau,
+      epsilon = epsilon,
+      list_general = list_general,
+      method_c_tilde = method_c_tilde,
+      kappa_omega = kappa_omega,
+      lambda_beta = lambda_beta,
+      lambda_alpha = lambda_alpha,
+      lambda_nu = lambda_nu
+    ),
+    error = function(err) NA
   )
 
-  observed_information_unpenalized <- tryCatch(-numDeriv::hessian(likelihood, # negative second deriv, unpen
-    theta,
-    x1 = x1,
-    x2 = x2,
-    x3 = x3,
-    y = y,
-    tau = tau,
-    list_general = list_general,
-    method_c_tilde = method_c_tilde,
-    kappa_omega = kappa_omega
-  ),
-  error = function(err) NA
+  observed_information_unpenalized <- tryCatch(
+    -numDeriv::hessian(likelihood, # negative second deriv, unpen
+      theta,
+      x1 = x1,
+      x2 = x2,
+      x3 = x3,
+      y = y,
+      tau = tau,
+      list_general = list_general,
+      method_c_tilde = method_c_tilde,
+      kappa_omega = kappa_omega
+    ),
+    error = function(err) NA
   )
 
   list(
@@ -3747,7 +3849,6 @@ fitting_func_base <- function(x1, # data should be scaled
 
 # Extract theta & plike_val -----------------------------------------------
 extract_theta_plike_val <- function(fit_res) {
-
   # last row
   row_n <- fit_res[nrow(fit_res), ]
   plike_val <- row_n$plike_val
@@ -3920,23 +4021,25 @@ basic_nr_normal_penalty <- function(theta,
   ## Information Matrix
   # Beta
   W_beta <- (1 / phi)
-  Sigma_beta <- diag(c(
-    0,
-    (lambda_beta / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (beta1_p^2))) / ((beta1_p^2 + epsilon^2)^3))
-  ),
-  nrow = p1 + 1,
-  ncol = p1 + 1
+  Sigma_beta <- diag(
+    c(
+      0,
+      (lambda_beta / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (beta1_p^2))) / ((beta1_p^2 + epsilon^2)^3))
+    ),
+    nrow = p1 + 1,
+    ncol = p1 + 1
   )
   I_beta <- ((t(x1 * c(W_beta))) %*% x1) + Sigma_beta
 
   # Alpha
   W_alpha <- (1 / (2 * phi)) * ((y - mu)^2)
-  Sigma_alpha <- diag(c(
-    0,
-    (lambda_alpha / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (alpha1_p^2))) / ((alpha1_p^2 + epsilon^2)^3))
-  ),
-  nrow = p2 + 1,
-  ncol = p2 + 1
+  Sigma_alpha <- diag(
+    c(
+      0,
+      (lambda_alpha / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (alpha1_p^2))) / ((alpha1_p^2 + epsilon^2)^3))
+    ),
+    nrow = p2 + 1,
+    ncol = p2 + 1
   )
   I_alpha <- ((t(x2 * c(W_alpha))) %*% x2) + Sigma_alpha
 
@@ -3997,23 +4100,25 @@ basic_information_matrices <- function(theta,
   ## Penalized Observed Information Matrix
   # Beta
   W_beta <- (1 / phi)
-  Sigma_beta <- diag(c(
-    0,
-    (lambda_beta / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (beta1_p^2))) / ((beta1_p^2 + epsilon^2)^3))
-  ),
-  nrow = p1 + 1,
-  ncol = p1 + 1
+  Sigma_beta <- diag(
+    c(
+      0,
+      (lambda_beta / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (beta1_p^2))) / ((beta1_p^2 + epsilon^2)^3))
+    ),
+    nrow = p1 + 1,
+    ncol = p1 + 1
   )
   I_beta <- ((t(x1 * c(W_beta))) %*% x1) + Sigma_beta
 
   # Alpha
   W_alpha <- (1 / (2 * phi)) * ((y - mu)^2)
-  Sigma_alpha <- diag(c(
-    0,
-    (lambda_alpha / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (alpha1_p^2))) / ((alpha1_p^2 + epsilon^2)^3))
-  ),
-  nrow = p2 + 1,
-  ncol = p2 + 1
+  Sigma_alpha <- diag(
+    c(
+      0,
+      (lambda_alpha / 2) * (((2 * (epsilon^2)) * (epsilon^2 - 3 * (alpha1_p^2))) / ((alpha1_p^2 + epsilon^2)^3))
+    ),
+    nrow = p2 + 1,
+    ncol = p2 + 1
   )
   I_alpha <- ((t(x2 * c(W_alpha))) %*% x2) + Sigma_alpha
 
@@ -4347,7 +4452,9 @@ printCoefmat_MON <- function(x, digits = max(3L, getOption("digits") - 2L), sign
         max_pv <- max(pv, na.rm = TRUE)
         if (max_pv < 1) {
           max_cut <- 1
-        } else {max_cut <- ceiling(max_pv*2)/2}
+        } else {
+          max_cut <- ceiling(max_pv * 2) / 2
+        }
 
         cutpoints_vec <- c(0, 0.001, 0.01, 0.05, 0.1, max_cut)
 
@@ -4368,6 +4475,144 @@ printCoefmat_MON <- function(x, digits = max(3L, getOption("digits") - 2L), sign
     quote = quote, right = right, na.print = na.print,
     ...
   )
+  if (signif.stars && signif.legend) {
+    if ((w <- getOption("width")) < nchar(sleg <- attr(
+      Signif,
+      "legend"
+    ))) {
+      sleg <- strwrap(sleg, width = w - 2, prefix = "  ")
+    }
+    cat("---\nSignif. codes:  ", sleg, sep = "", fill = w +
+      4 + max(nchar(sleg, "bytes") - nchar(sleg)))
+  }
+  invisible(x)
+}
+
+printCoefmat_MON_stars <- function(x, digits = max(3L, getOption("digits") - 2L), signif.stars = getOption("show.signif.stars"),
+                                   signif.legend = signif.stars, dig.tst = max(1L, min(
+                                     5L,
+                                     digits - 1L
+                                   )), cs.ind = 1:k, tst.ind = k + 1, zap.ind = integer(),
+                                   P.values = NULL, has.Pvalue = nc >= 4L && length(cn <- colnames(x)) &&
+                                     substr(cn[nc], 1L, 3L) %in% c("Pr(", "p-v"), eps.Pvalue = .Machine$double.eps,
+                                   na.print = "NA", quote = FALSE, right = TRUE, ...) {
+  if (is.null(d <- dim(x)) || length(d) != 2L) {
+    stop("'x' must be coefficient matrix/data frame")
+  }
+  nc <- d[2L]
+  if (is.null(P.values)) {
+    scp <- getOption("show.coef.Pvalues")
+    if (!is.logical(scp) || is.na(scp)) {
+      warning("option \"show.coef.Pvalues\" is invalid: assuming TRUE")
+      scp <- TRUE
+    }
+    P.values <- has.Pvalue && scp
+  } else if (P.values && !has.Pvalue) {
+    stop("'P.values' is TRUE, but 'has.Pvalue' is not")
+  }
+  if (has.Pvalue && !P.values) {
+    d <- dim(xm <- data.matrix(x[, -nc, drop = FALSE]))
+    nc <- nc - 1
+    has.Pvalue <- FALSE
+  } else {
+    xm <- data.matrix(x)
+  }
+  k <- nc - has.Pvalue - (if (missing(tst.ind)) {
+    1
+  } else {
+    length(tst.ind)
+  })
+  if (!missing(cs.ind) && length(cs.ind) > k) {
+    stop("wrong k / cs.ind")
+  }
+  Cf <- array("", dim = d, dimnames = dimnames(xm))
+  ok <- !(ina <- is.na(xm))
+  for (i in zap.ind) xm[, i] <- zapsmall(xm[, i], digits)
+  if (length(cs.ind)) {
+    acs <- abs(coef.se <- xm[, cs.ind, drop = FALSE])
+    if (any(ia <- is.finite(acs))) {
+      digmin <- 1 + if (length(acs <- acs[ia & acs !=
+        0])) {
+        floor(log10(range(acs[acs != 0], finite = TRUE)))
+      } else {
+        0
+      }
+      Cf[, cs.ind] <- format(round(coef.se, max(1L, digits -
+        digmin)), digits = digits)
+    }
+  }
+  if (length(tst.ind)) {
+    Cf[, tst.ind] <- format(round(xm[, tst.ind], digits = dig.tst),
+      digits = digits
+    )
+  }
+  if (any(r.ind <- !((1L:nc) %in% c(cs.ind, tst.ind, if (has.Pvalue) nc)))) {
+    for (i in which(r.ind)) Cf[, i] <- format(xm[, i], digits = digits)
+  }
+  ok[, tst.ind] <- FALSE
+  okP <- if (has.Pvalue) {
+    ok[, -nc]
+  } else {
+    ok
+  }
+  x1 <- Cf[okP]
+  dec <- getOption("OutDec")
+  if (dec != ".") {
+    x1 <- chartr(dec, ".", x1)
+  }
+  x0 <- (xm[okP] == 0) != (as.numeric(x1) == 0)
+  if (length(not.both.0 <- which(x0 & !is.na(x0)))) {
+    Cf[okP][not.both.0] <- format(xm[okP][not.both.0], digits = max(
+      1L,
+      digits - 1L
+    ))
+  }
+  if (any(ina)) {
+    Cf[ina] <- na.print
+  }
+  if (any(inan <- is.nan(xm))) {
+    Cf[inan] <- "NaN"
+  }
+  if (P.values) {
+    if (!is.logical(signif.stars) || is.na(signif.stars)) {
+      warning("option \"show.signif.stars\" is invalid: assuming TRUE")
+      signif.stars <- TRUE
+    }
+    if (any(okP <- ok[, nc])) {
+      pv <- as.vector(xm[, nc])
+      Cf[okP, nc] <- format.pval(pv[okP],
+        digits = dig.tst,
+        eps = eps.Pvalue
+      )
+      signif.stars <- signif.stars && any(pv[okP] < 0.1)
+      if (signif.stars) {
+        # MON
+        max_pv <- max(pv, na.rm = TRUE)
+        if (max_pv < 1) {
+          max_cut <- 1
+        } else {
+          max_cut <- ceiling(max_pv * 2) / 2
+        }
+
+        cutpoints_vec <- c(0, 0.001, 0.01, 0.05, 0.1, max_cut)
+
+        Signif <- stats::symnum(pv,
+          corr = FALSE, na = FALSE,
+          cutpoints = cutpoints_vec,
+          symbols = c("***", "**", "*", ".", " ")
+        )
+        Cf <- cbind(Cf, format(Signif))
+      }
+    } else {
+      signif.stars <- FALSE
+    }
+  } else {
+    signif.stars <- FALSE
+  }
+  # print.default(Cf,
+  #               quote = quote, right = right, na.print = na.print,
+  #               ...
+  # )
   if (signif.stars && signif.legend) {
     if ((w <- getOption("width")) < nchar(sleg <- attr(
       Signif,
