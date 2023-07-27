@@ -704,16 +704,24 @@ predict.smoothic <- function(object,
 #'
 #' @description This function plots the model-based conditional density curves for
 #' different effect combinations. For example, take a particular covariate that is selected
-#' in the final model. The other selected covariates are fixed at their median values and then
-#' the plotted red and blue densities correspond to the modification of the chosen
-#' covariate as \dQuote{low} (Q1, first quartile) and \dQuote{high} (Q3, third quartile).
+#' in the final model. The other selected covariates are fixed at their median values by default
+#' (see \code{covariate_fix} to fix at other values) and then the plotted red and blue densities
+#' correspond to the modification of the chosen covariate as \dQuote{low} (25th quantile by default) and
+#' \dQuote{high} (75th quantile by default).
 #'
 #' @param obj An object of class \dQuote{\code{smoothic}} which is the result
 #' of a call to \code{\link{smoothic}}.
 #' @param what The covariate effects to be plotted, default is \code{what = "all"}. The user
 #' may supply a vector of covariate names to be plotted (only covariates selected in the final
-#' model can be plotted). Additionally, a \dQuote{baseline} or \dQuote{average} individual can be plotted by
-#' supplying \code{what = "median"}.
+#' model can be plotted).
+#' @param show_average_indiv Should a \dQuote{baseline} or \dQuote{average} individual be shown,
+#' default is \code{show_average_indiv = TRUE}. If \code{show_average_indiv = FALSE} then this
+#' is not shown.
+#' @param p The probabilities given to the \code{\link{quantile}} function. This corresponds to the plotted
+#' red and blue density curves where the chosen covariate is modified as \dQuote{low} and \dQuote{high}.
+#' The default is \code{p = c(0.25, 0.75)} to show the 25th and 75th quantiles.
+#' @param covariate_fix Optional values to fix the covariates at that are chosen in the final model. When
+#' not supplied, the covariates are fixed at their median values. See the example for more detail.
 #' @param density_range Optional range for which the density curves should be plotted.
 #'
 #' @return A plot of the conditional density curves.
@@ -730,6 +738,23 @@ predict.smoothic <- function(object,
 #'   model = "mpr"
 #' )
 #' plot_effects(results)
+#'
+#' # Only plot gastemp and gaspres
+#' # Do not show the average individual plot
+#' # Plot the lower and upper density curves using 10th quantile (lower) and 90th quantile (upper)
+#' # Fix violent to its violent to 820 and funding to 40
+#'
+#' plot_effects(results,
+#'              what = c("gastemp", "gaspres"),
+#'              show_average_indiv = FALSE,
+#'              p = c(0.1, 0.9),
+#'              covariate_fix = c("gastemp" = 70,
+#'                                "gaspres" = 4))
+#'
+#' # The curves for the gastemp variable are computed by fixing gaspres = 4 (as is specified in the input).
+#' # The remaining variables that are not specified in covariate_fix are fixed to their median values
+#' # (i.e., tanktemp is fixed at its median). gastemp is then modified to be low (10th quantile) and high (90th quantile),
+#' # as specified by p in the function.
 #'
 #' @import ggplot2
 #' @import dplyr
@@ -755,6 +780,11 @@ plot_effects <- function(obj,
   if (any(quantile_values > 1) | any(quantile_values < 0)) {
     stop("Error: values of p must be between 0 and 1")
   }
+
+  if (quantile_values[1] > quantile_values[2]) {
+    stop("Error: the first element of p is the should be less than the second element of p")
+  }
+
 
   fit_obj <- obj
   n <- length(fit_obj$y)
