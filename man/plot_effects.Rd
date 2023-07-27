@@ -4,7 +4,14 @@
 \alias{plot_effects}
 \title{Plot conditional density curves}
 \usage{
-plot_effects(obj, what = "all", density_range)
+plot_effects(
+  obj,
+  what = "all",
+  show_average_indiv = TRUE,
+  p = c(0.25, 0.75),
+  covariate_fix,
+  density_range
+)
 }
 \arguments{
 \item{obj}{An object of class \dQuote{\code{smoothic}} which is the result
