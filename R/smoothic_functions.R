@@ -15,7 +15,9 @@
 #' "Smooth Generalized Normal Distribution" where the shape parameter kappa is also
 #' estimated. Classical regression with normally distributed errors is performed
 #' when \code{family = "normal"}. If \code{family = "laplace"}, this corresponds to
-#' a robust regression with errors from the Laplace distribution.
+#' a robust regression with errors from a Laplace-like distribution. If \code{family = "laplace"},
+#' then the default value of \code{tau = 0.15}, which is used to approximate the absolute value
+#' in the Laplace density function.
 #' @param model The type of regression to be implemented, either \code{model = "mpr"}
 #' for multiparameter regression (i.e., location and scale), or \code{model = "spr"} for single parameter
 #' regression (i.e., location only). Defaults to \code{model="mpr"}.
@@ -25,7 +27,8 @@
 #' @param epsilon_1 Starting value for \eqn{\epsilon}-telescope. Defaults to 10.
 #' @param epsilon_T Final value for \eqn{\epsilon}-telescope. Defaults to
 #' \code{1e-04}.
-#' @param steps_T Number of steps in \eqn{\epsilon}-telescope. Defaults to 100.
+#' @param steps_T Number of steps in \eqn{\epsilon}-telescope. Defaults to 100, must be
+#' greater than or equal to 10.
 #' @param zero_tol Coefficients below this value are treated as being zero.
 #' Defaults to \code{1e-05}.
 #' @param max_it Maximum number of iterations to be performed before the
@@ -40,13 +43,15 @@
 #' estimated from the data.
 #' @param tau Optional user-supplied positive smoothing parameter value in the
 #' "Smooth Generalized Normal Distribution" if \code{family = "sgnd"} or
-#' \code{family = "laplace"}. If not supplied, then \code{tau = "0.15"}.
-#' Smaller values of \code{tau} bring the approximation closer to the absolute value
-#' function, but this can cause the optimization to become unstable. Some issues with
-#' standard error calculation with smaller values of \code{tau} when using the Laplace
-#' distribution in the robust regression setting.
-#' @param max_it_vec Optional vector of length \code{steps_T} that contains the maximum number of iterations to be performed in each \eqn{\epsilon}-telescope
-#' step. If not supplied, \code{max_it} is the maximum number of iterations performed at each step.
+#' \code{family = "laplace"}. If not supplied then \code{tau = 0.15}. If \code{family = "normal"}
+#' then \code{tau = 0} is used. Smaller values of \code{tau} bring the approximation closer to the
+#' absolute value function, but this can cause the optimization to become unstable. Some issues with
+#' standard error calculation with smaller values of \code{tau} when using the Laplace distribution in
+#' the robust regression setting.
+#' @param max_it_vec Optional vector of length \code{steps_T} that contains the maximum number of
+#' iterations to be performed in each \eqn{\epsilon}-telescope step. If not supplied, \code{max_it}
+#' is the maximum number of iterations performed for 10 steps and then the maximum number of iterations
+#' to be performed reduces to 10 for the remainder of the telescope.
 #' @param stepmax_nlm Optional maximum allowable scaled step length (positive scalar) to be passed to
 #' \code{\link{nlm}} if \code{optimizer = "nlm"}. If not supplied, default values in
 #' \code{\link{nlm}} are used.
@@ -751,10 +756,10 @@ predict.smoothic <- function(object,
 #'              covariate_fix = c("gastemp" = 70,
 #'                                "gaspres" = 4))
 #'
-#' # The curves for the gastemp variable are computed by fixing gaspres = 4 (as is specified in the input).
-#' # The remaining variables that are not specified in covariate_fix are fixed to their median values
-#' # (i.e., tanktemp is fixed at its median). gastemp is then modified to be low (10th quantile) and high (90th quantile),
-#' # as specified by p in the function.
+#' # The curves for the gastemp variable are computed by fixing gaspres = 4 (as is specified
+#' # in the input). The remaining variables that are not specified in covariate_fix are fixed
+#' # to their median values (i.e., tanktemp is fixed at its median). gastemp is then modified
+#' # to be low (10th quantile) and high (90th quantile), as specified by p in the function.
 #'
 #' @import ggplot2
 #' @import dplyr
@@ -912,7 +917,7 @@ plot_effects <- function(obj,
       add_column(typee = factor("fix_value"), .before = 1) # tibble output
   }
 
-  df_summary <- dataset_raw %>%
+  df_summary_1 <- dataset_raw %>%
     reframe(across(everything(), ~ c(
       median(.),
       quantile(., probs = quantile_values) # input p
@@ -921,16 +926,18 @@ plot_effects <- function(obj,
       typee = factor(levels_summary, levels = levels_summary),
       .before = 1
     ) %>%
-    dplyr::select(-all_of(response_val)) %>%
-    bind_rows(.,
-              fix_row)
+    dplyr::select(-all_of(response_val))
+
+  df_summary <- bind_rows(df_summary_1,
+                          fix_row)
 
   # Change binary
   for (i in bin_pos) {
     df_summary[, i + 1] <- c(
       Mode_calc(unlist(dataset_raw[, i])),
       min(unlist(dataset_raw[, i])),
-      max(unlist(dataset_raw[, i]))
+      max(unlist(dataset_raw[, i])),
+      Mode_calc(unlist(dataset_raw[, i])) # fixed value
     )
   }
 
@@ -1092,7 +1099,7 @@ plot_effects <- function(obj,
     mutate(y_rough = ifelse(.data$y < 1e-5, NA, .data$y)) %>%
     filter(.data$coeff %in% coef_plot_names) %>%
     mutate(coeff = factor(.data$coeff, levels = coef_plot_names)) %>%
-    mutate(typee = recode_factor(typee, !!!levels_resquant_p))
+    mutate(typee = recode_factor(.data$typee, !!!levels_resquant_p))
 
 
   fig_effects <- df_sgnd_rough %>%

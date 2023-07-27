@@ -33,7 +33,9 @@ should be unstandardized.}
 "Smooth Generalized Normal Distribution" where the shape parameter kappa is also
 estimated. Classical regression with normally distributed errors is performed
 when \code{family = "normal"}. If \code{family = "laplace"}, this corresponds to
-a robust regression with errors from the Laplace distribution.}
+a robust regression with errors from a Laplace-like distribution. If \code{family = "laplace"},
+then the default value of \code{tau = 0.15}, which is used to approximate the absolute value
+in the Laplace density function.}
 
 \item{model}{The type of regression to be implemented, either \code{model = "mpr"}
 for multiparameter regression (i.e., location and scale), or \code{model = "spr"} for single parameter
@@ -48,7 +50,8 @@ regression (i.e., location only). Defaults to \code{model="mpr"}.}
 \item{epsilon_T}{Final value for \eqn{\epsilon}-telescope. Defaults to
 \code{1e-04}.}
 
-\item{steps_T}{Number of steps in \eqn{\epsilon}-telescope. Defaults to 100.}
+\item{steps_T}{Number of steps in \eqn{\epsilon}-telescope. Defaults to 100, must be
+greater than or equal to 10.}
 
 \item{zero_tol}{Coefficients below this value are treated as being zero.
 Defaults to \code{1e-05}.}
@@ -68,14 +71,16 @@ estimated from the data.}
 
 \item{tau}{Optional user-supplied positive smoothing parameter value in the
 "Smooth Generalized Normal Distribution" if \code{family = "sgnd"} or
-\code{family = "laplace"}. If not supplied, then \code{tau = "0.15"}.
-Smaller values of \code{tau} bring the approximation closer to the absolute value
-function, but this can cause the optimization to become unstable. Some issues with
-standard error calculation with smaller values of \code{tau} when using the Laplace
-distribution in the robust regression setting.}
+\code{family = "laplace"}. If not supplied then \code{tau = 0.15}. If \code{family = "normal"}
+then \code{tau = 0} is used. Smaller values of \code{tau} bring the approximation closer to the
+absolute value function, but this can cause the optimization to become unstable. Some issues with
+standard error calculation with smaller values of \code{tau} when using the Laplace distribution in
+the robust regression setting.}
 
-\item{max_it_vec}{Optional vector of length \code{steps_T} that contains the maximum number of iterations to be performed in each \eqn{\epsilon}-telescope
-step. If not supplied, \code{max_it} is the maximum number of iterations performed at each step.}
+\item{max_it_vec}{Optional vector of length \code{steps_T} that contains the maximum number of
+iterations to be performed in each \eqn{\epsilon}-telescope step. If not supplied, \code{max_it}
+is the maximum number of iterations performed for 10 steps and then the maximum number of iterations
+to be performed reduces to 10 for the remainder of the telescope.}
 
 \item{stepmax_nlm}{Optional maximum allowable scaled step length (positive scalar) to be passed to
 \code{\link{nlm}} if \code{optimizer = "nlm"}. If not supplied, default values in

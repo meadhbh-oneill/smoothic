@@ -68,10 +68,10 @@ plot_effects(results,
              covariate_fix = c("gastemp" = 70,
                                "gaspres" = 4))
 
-# The curves for the gastemp variable are computed by fixing gaspres = 4 (as is specified in the input).
-# The remaining variables that are not specified in covariate_fix are fixed to their median values
-# (i.e., tanktemp is fixed at its median). gastemp is then modified to be low (10th quantile) and high (90th quantile),
-# as specified by p in the function.
+# The curves for the gastemp variable are computed by fixing gaspres = 4 (as is specified
+# in the input). The remaining variables that are not specified in covariate_fix are fixed
+# to their median values (i.e., tanktemp is fixed at its median). gastemp is then modified
+# to be low (10th quantile) and high (90th quantile), as specified by p in the function.
 
 }
 \author{
