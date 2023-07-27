@@ -105,7 +105,9 @@ should be unstandardized.</p></dd>
 "Smooth Generalized Normal Distribution" where the shape parameter kappa is also
 estimated. Classical regression with normally distributed errors is performed
 when <code>family = "normal"</code>. If <code>family = "laplace"</code>, this corresponds to
-a robust regression with errors from the Laplace distribution.</p></dd>
+a robust regression with errors from a Laplace-like distribution. If <code>family = "laplace"</code>,
+then the default value of <code>tau = 0.15</code>, which is used to approximate the absolute value
+in the Laplace density function.</p></dd>
 
 
 <dt>model</dt>
@@ -130,7 +132,8 @@ regression (i.e., location only). Defaults to <code>model="mpr"</code>.</p></dd>
 
 
 <dt>steps_T</dt>
-<dd><p>Number of steps in \(\epsilon\)-telescope. Defaults to 100.</p></dd>
+<dd><p>Number of steps in \(\epsilon\)-telescope. Defaults to 100, must be
+greater than or equal to 10.</p></dd>
 
 
 <dt>zero_tol</dt>
@@ -160,16 +163,18 @@ estimated from the data.</p></dd>
 <dt>tau</dt>
 <dd><p>Optional user-supplied positive smoothing parameter value in the
 "Smooth Generalized Normal Distribution" if <code>family = "sgnd"</code> or
-<code>family = "laplace"</code>. If not supplied, then <code>tau = "0.15"</code>.
-Smaller values of <code>tau</code> bring the approximation closer to the absolute value
-function, but this can cause the optimization to become unstable. Some issues with
-standard error calculation with smaller values of <code>tau</code> when using the Laplace
-distribution in the robust regression setting.</p></dd>
+<code>family = "laplace"</code>. If not supplied then <code>tau = 0.15</code>. If <code>family = "normal"</code>
+then <code>tau = 0</code> is used. Smaller values of <code>tau</code> bring the approximation closer to the
+absolute value function, but this can cause the optimization to become unstable. Some issues with
+standard error calculation with smaller values of <code>tau</code> when using the Laplace distribution in
+the robust regression setting.</p></dd>
 
 
 <dt>max_it_vec</dt>
-<dd><p>Optional vector of length <code>steps_T</code> that contains the maximum number of iterations to be performed in each \(\epsilon\)-telescope
-step. If not supplied, <code>max_it</code> is the maximum number of iterations performed at each step.</p></dd>
+<dd><p>Optional vector of length <code>steps_T</code> that contains the maximum number of
+iterations to be performed in each \(\epsilon\)-telescope step. If not supplied, <code>max_it</code>
+is the maximum number of iterations performed for 10 steps and then the maximum number of iterations
+to be performed reduces to 10 for the remainder of the telescope.</p></dd>
 
 
 <dt>stepmax_nlm</dt>
@@ -223,17 +228,17 @@ Automatic Variable Selection. &lt;arXiv:2212.07317&gt;</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Location:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                   Estimate       SEE       Z    Pvalue    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> intercept_0_beta  0.742017  0.921733  0.8050  0.176466    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> tanktemp_1_beta  -0.089265  0.040390 -2.2100  0.001228 ** </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> gastemp_2_beta    0.226331  0.028111  8.0514 &lt; 2.2e-16 ***</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> intercept_0_beta  0.740133  0.922060  0.8027  0.177285    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> tanktemp_1_beta  -0.089276  0.040426 -2.2084  0.001239 ** </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> gastemp_2_beta    0.226337  0.028123  8.0481 &lt; 2.2e-16 ***</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> tankpres_3_beta          0         0       0         0    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> gaspres_4_beta    5.199452  0.836829  6.2133 &lt; 2.2e-16 ***</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> gaspres_4_beta    5.200004  0.837714  6.2074 &lt; 2.2e-16 ***</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Scale:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                    Estimate       SEE       Z    Pvalue    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> intercept_0_alpha -0.647524  0.724492 -0.8938    0.1427    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> intercept_0_alpha -0.646010  0.724506 -0.8917    0.1434    </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> tanktemp_1_alpha          0         0       0         0    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> gastemp_2_alpha    0.056681  0.011276  5.0268 8.045e-13 ***</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> gastemp_2_alpha    0.056654  0.011278  5.0233 8.382e-13 ***</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> tankpres_3_alpha          0         0       0         0    </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> gaspres_4_alpha           0         0       0         0    </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
@@ -241,9 +246,9 @@ Automatic Variable Selection. &lt;arXiv:2212.07317&gt;</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Penalized Likelihood:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] -310.6329</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] -310.633</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> IC Value:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 621.2658</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 621.2659</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
