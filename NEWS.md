@@ -1,3 +1,9 @@
+# smoothic 1.2.0
+* minor update to `plot_effects()` function to increase flexibility of plotting different quantile
+values
+
+* minor update to improve the documentation of some functions
+
 # smoothic 1.1.0
 
 * minor update to the `smoothic()` function to include a vector of the maximum iterations to
