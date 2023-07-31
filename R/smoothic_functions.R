@@ -438,7 +438,7 @@ summary.smoothic <- function(object, ...) {
 
   coefmat <- cbind(
     Estimate = coefficients,
-    SEE = see,
+    SE = see,
     Z = zval,
     Pvalue = pval
   )
