@@ -15,7 +15,6 @@ smoothic(
   steps_T = 100,
   zero_tol = 1e-05,
   max_it = 10000,
-  optimizer = "nlm",
   kappa,
   tau,
   max_it_vec,
@@ -59,11 +58,6 @@ Defaults to \code{1e-05}.}
 \item{max_it}{Maximum number of iterations to be performed before the
 optimization is terminated. Defaults to \code{1e+04}.}
 
-\item{optimizer}{The optimization procedure to be used. Defaults to
-\code{optimizer = "nlm"}, where the \code{\link{nlm}} function from the
-\bold{stats} package is used. This tends to be more stable than the manually
- coded Newton-Raphson procedure that is used when \code{optimizer = "manual"}.}
-
 \item{kappa}{Optional user-supplied positive kappa value (> 0.2 to avoid
 computational issues) if \code{family = "sgnd"}. If supplied, the shape parameter
 kappa will be fixed to this value in the optimization. If not supplied, kappa is
@@ -83,7 +77,7 @@ is the maximum number of iterations performed for 10 steps and then the maximum 
 to be performed reduces to 10 for the remainder of the telescope.}
 
 \item{stepmax_nlm}{Optional maximum allowable scaled step length (positive scalar) to be passed to
-\code{\link{nlm}} if \code{optimizer = "nlm"}. If not supplied, default values in
+\code{\link{nlm}}. If not supplied, default values in
 \code{\link{nlm}} are used.}
 }
 \value{
