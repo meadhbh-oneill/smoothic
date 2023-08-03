@@ -99,7 +99,7 @@ A list with estimates and estimated standard errors.
 \description{
 Implements the SIC \eqn{\epsilon}-telescope method, either using
 single or multiparameter regression. Returns estimated coefficients, estimated
-standard errors (SEE) and the value of the penalized likelihood function.
+standard errors and the value of the penalized likelihood function.
 Note that the function will scale the predictors to have unit variance, however,
 the final estimates are converted back to their original scale.
 }
