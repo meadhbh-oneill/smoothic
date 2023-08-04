@@ -118,7 +118,8 @@ regression (i.e., location only). Defaults to <code>model="mpr"</code>.</p></dd>
 <dt>lambda</dt>
 <dd><p>Value of penalty tuning parameter. Suggested values are
 <code>"log(n)"</code> and <code>"2"</code> for the BIC and AIC respectively. Defaults to
-<code>lambda ="log(n)"</code> for the BIC case.</p></dd>
+<code>lambda ="log(n)"</code> for the BIC case. This is evaluated as an R expression, so it may
+be a number of some function of <code>n</code>.</p></dd>
 
 
 <dt>epsilon_1</dt>
