@@ -42,7 +42,8 @@ regression (i.e., location only). Defaults to \code{model="mpr"}.}
 
 \item{lambda}{Value of penalty tuning parameter. Suggested values are
 \code{"log(n)"} and \code{"2"} for the BIC and AIC respectively. Defaults to
-\code{lambda ="log(n)"} for the BIC case.}
+\code{lambda ="log(n)"} for the BIC case. This is evaluated as an R expression, so it may
+be a number of some function of \code{n}.}
 
 \item{epsilon_1}{Starting value for \eqn{\epsilon}-telescope. Defaults to 10.}
 

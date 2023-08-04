@@ -23,7 +23,8 @@
 #' regression (i.e., location only). Defaults to \code{model="mpr"}.
 #' @param lambda Value of penalty tuning parameter. Suggested values are
 #' \code{"log(n)"} and \code{"2"} for the BIC and AIC respectively. Defaults to
-#' \code{lambda ="log(n)"} for the BIC case.
+#' \code{lambda ="log(n)"} for the BIC case. This is evaluated as an R expression, so it may
+#' be a number of some function of \code{n}.
 #' @param epsilon_1 Starting value for \eqn{\epsilon}-telescope. Defaults to 10.
 #' @param epsilon_T Final value for \eqn{\epsilon}-telescope. Defaults to
 #' \code{1e-04}.
