@@ -764,6 +764,7 @@ predict.smoothic <- function(object,
 #' @import tidyr
 #' @import purrr
 #' @import tibble
+#' @import toOrdinal
 #' @importFrom rlang .data
 #' @importFrom data.table rbindlist
 #'
@@ -1091,6 +1092,8 @@ plot_effects <- function(obj,
   ) # blue
   names(fill_pal_typee) <- levels_resquant_p
 
+  labels_typee <- toOrdinal::toOrdinal(quantile_values * 100) # get 25th etc
+  names(labels_typee) <- levels_quant_p
 
   # Remove tail values less that 1e-5
   df_sgnd_rough <- df_sgnd %>%
@@ -1116,8 +1119,8 @@ plot_effects <- function(obj,
     geom_ribbon(aes(ymin = 0, ymax = .data$y_rough),
       alpha = 0.25
     ) +
-    scale_colour_manual(values = col_pal_typee, breaks = levels_quant_p, name = "Quantile") +
-    scale_fill_manual(values = fill_pal_typee, breaks = levels_quant_p, name = "Quantile") +
+    scale_colour_manual(values = col_pal_typee, breaks = levels_quant_p, name = "Quantile", labels = labels_typee) +
+    scale_fill_manual(values = fill_pal_typee, breaks = levels_quant_p, name = "Quantile", labels = labels_typee) +
     theme_bw() +
     scale_x_continuous(expand = expansion(mult = c(0.01, 0.01))) +
     scale_y_continuous(expand = expansion(mult = c(0, 0.25))) +

@@ -30,7 +30,8 @@ Imports: data.table,
          rlang,
          stringr,
          tibble,
-         tidyr
+         tidyr,
+         toOrdinal
 Suggests:
     knitr,
     rmarkdown
