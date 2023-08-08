@@ -28,6 +28,7 @@ Imports: data.table,
          numDeriv,
          purrr,
          rlang,
+         stringr,
          tibble,
          tidyr
 Suggests:

@@ -1164,9 +1164,11 @@ plot_effects <- function(obj,
 #'
 #' @import ggplot2
 #' @import dplyr
+#' @import tibble
 #' @import tidyr
-#' @importFrom purrr map_dbl
+#' @importFrom purrr map_dbl map_chr
 #' @importFrom rlang .data
+#' @importFrom stringr str_split
 #'
 #' @export
 plot_paths <- function(obj,
@@ -1191,7 +1193,7 @@ plot_paths <- function(obj,
     "alpha_0",
     "nu_0"
   )]
-  plot_df_prep <- telescope_df %>%
+  plot_df_prep_1 <- telescope_df %>%
     dplyr::select(
       .data$epsilon,
       contains(c("beta", "alpha")),
@@ -1205,8 +1207,27 @@ plot_paths <- function(obj,
     mutate(type = case_when(
       grepl("_beta", .data$name) ~ "Location",
       grepl("_alpha", .data$name) ~ "Scale"
-    )) %>%
-    mutate(coeff = sub("_.*", "", .data$name)) # extract variable name
+    ))
+
+  plot_names_vec <- plot_df_prep_1$name
+  number_of_underscores <- lengths(regmatches(plot_names_vec, gregexpr("_", plot_names_vec)))
+
+  if (max(number_of_underscores) == 2) { # if only 2 underscores in name, then extract
+    plot_df_prep <- plot_df_prep_1 %>%
+      mutate(coeff = sub("_.*", "", .data$name)) %>%  # extract variable name
+      mutate(coeff = factor(.data$coeff, levels = colnames(obj.x)))
+  } else {
+    plot_names_list <- plot_names_vec %>%
+      stringr::str_split(pattern = "_")
+
+    plot_names_list_new <- map2_chr(.x = plot_names_list, .y = number_of_underscores, ~ {
+      paste(.x[1:(.y-1)], collapse = "_")
+    })
+
+    plot_df_prep <- plot_df_prep_1 %>%
+      tibble::add_column(coeff = plot_names_list_new) %>%
+      mutate(coeff = factor(.data$coeff, levels = colnames(obj$x)))
+  }
 
   if (log_scale_x == TRUE) {
     plot_df <- plot_df_prep %>%
