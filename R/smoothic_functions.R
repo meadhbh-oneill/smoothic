@@ -1218,7 +1218,7 @@ plot_paths <- function(obj,
   if (max(number_of_underscores) == 2) { # if only 2 underscores in name, then extract
     plot_df_prep <- plot_df_prep_1 %>%
       mutate(coeff = sub("_.*", "", .data$name)) %>%  # extract variable name
-      mutate(coeff = factor(.data$coeff, levels = colnames(obj.x)))
+      mutate(coeff = factor(.data$coeff, levels = colnames(obj$x)))
   } else {
     plot_names_list <- plot_names_vec %>%
       stringr::str_split(pattern = "_")
