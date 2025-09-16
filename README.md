@@ -6,7 +6,7 @@
 <!-- badges: end -->
 
 For more information, check out the `smoothic`
-[website](https://meadhbh-oneill.ie/smoothic/).
+[website](https://meadhbh-oneill.github.io/smoothic/).
 
 Implementation of the SIC epsilon-telescope method, either using single or multi-parameter regression. Includes classical regression with normally distributed errors and robust regression, where the errors are from the Laplace distribution. The "smooth generalized normal distribution" is used, where the estimation of an additional shape parameter allows the user to move smoothly between both types of regression. See O'Neill and Burke (2022) "Robust Distributional Regression with Automatic Variable Selection" for more details on [arXiv](https://arxiv.org/abs/2212.07317). This package also contains the data analyses from O'Neill and Burke (2023). "Variable selection using a smooth information criterion for distributional regression models" in [Statistics & Computing](https://link.springer.com/article/10.1007/s11222-023-10204-8). 
 
