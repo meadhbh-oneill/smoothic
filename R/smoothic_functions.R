@@ -69,7 +69,7 @@
 #' criterion for distributional regression models. <doi:10.1007/s11222-023-10204-8>
 #'
 #' O'Neill, M. and Burke, K. (2022) Robust Distributional Regression with
-#' Automatic Variable Selection. <arXiv:2212.07317>
+#' Automatic Variable Selection. <doi:10.48550/arXiv.2212.07317>
 #'
 #' @examples
 #' # Sniffer Data --------------------
