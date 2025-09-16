@@ -1,7 +1,7 @@
 Package: smoothic
 Type: Package
 Title: Variable Selection Using a Smooth Information Criterion
-Version: 1.2.0
+Version: 1.2.1
 Depends: R (>= 3.5.0)
 Authors@R: c(person("Meadhbh", "O'Neill", email = "meadhbhon@gmail.com", role = c("aut", "cre")), person("Kevin", "Burke", role = c("aut")))
 Maintainer: Meadhbh O'Neill <meadhbhon@gmail.com>
@@ -16,11 +16,12 @@ Description: Implementation of the SIC epsilon-telescope method, either
     Burke (2023). "Variable selection using a smooth information criterion for distributional
     regression models". <doi:10.1007/s11222-023-10204-8>.
 License: GPL-3
-URL: https://github.com/meadhbh-oneill/smoothic,
-    https://meadhbh-oneill.ie/smoothic/
+URL: https://meadhbh-oneill.github.io/smoothic/,
+    https://github.com/meadhbh-oneill/smoothic
+BugReports: https://github.com/meadhbh-oneill/smoothic/issues
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.3
 Imports: data.table,
          dplyr,
          ggplot2,

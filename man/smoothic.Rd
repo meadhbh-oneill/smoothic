@@ -78,8 +78,8 @@ is the maximum number of iterations performed for 10 steps and then the maximum 
 to be performed reduces to 10 for the remainder of the telescope.}
 
 \item{stepmax_nlm}{Optional maximum allowable scaled step length (positive scalar) to be passed to
-\code{\link{nlm}}. If not supplied, default values in
-\code{\link{nlm}} are used.}
+\code{\link[stats]{nlm}}. If not supplied, default values in
+\code{\link[stats]{nlm}} are used.}
 }
 \value{
 A list with estimates and estimated standard errors.

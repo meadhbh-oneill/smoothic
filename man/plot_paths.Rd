@@ -21,7 +21,7 @@ on the x-axis. If \code{log_scale_x = FALSE}, then the raw values of the \eqn{\e
 \item{log_scale_x_pretty}{Default is \code{log_scale_x_pretty = TRUE}, where the x-axis labels are \dQuote{pretty}.
 \code{epsilon_1} and \code{epsilon_T} must be a number to the power of 10 for this to apply.}
 
-\item{facet_scales}{Default is \code{facet_scales = "fixed"}. This is supplied to \code{\link{facet_wrap}}.}
+\item{facet_scales}{Default is \code{facet_scales = "fixed"}. This is supplied to \code{\link[ggplot2]{facet_wrap}}.}
 }
 \value{
 A plot of the standardized coefficient values through the \eqn{\epsilon}-telescope.

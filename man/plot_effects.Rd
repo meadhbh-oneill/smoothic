@@ -25,7 +25,7 @@ model can be plotted).}
 default is \code{show_average_indiv = TRUE}. If \code{show_average_indiv = FALSE} then this
 is not shown.}
 
-\item{p}{The probabilities given to the \code{\link{quantile}} function. This corresponds to the plotted
+\item{p}{The probabilities given to the \code{\link[stats]{quantile}} function. This corresponds to the plotted
 red and blue density curves where the chosen covariate is modified as \dQuote{low} and \dQuote{high}.
 The default is \code{p = c(0.25, 0.75)} to show the 25th and 75th quantiles.}
 

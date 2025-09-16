@@ -50,8 +50,8 @@
 #' is the maximum number of iterations performed for 10 steps and then the maximum number of iterations
 #' to be performed reduces to 10 for the remainder of the telescope.
 #' @param stepmax_nlm Optional maximum allowable scaled step length (positive scalar) to be passed to
-#' \code{\link{nlm}}. If not supplied, default values in
-#' \code{\link{nlm}} are used.
+#' \code{\link[stats]{nlm}}. If not supplied, default values in
+#' \code{\link[stats]{nlm}} are used.
 #'
 #'
 #' @return A list with estimates and estimated standard errors.
@@ -720,7 +720,7 @@ predict.smoothic <- function(object,
 #' @param show_average_indiv Should a \dQuote{baseline} or \dQuote{average} individual be shown,
 #' default is \code{show_average_indiv = TRUE}. If \code{show_average_indiv = FALSE} then this
 #' is not shown.
-#' @param p The probabilities given to the \code{\link{quantile}} function. This corresponds to the plotted
+#' @param p The probabilities given to the \code{\link[stats]{quantile}} function. This corresponds to the plotted
 #' red and blue density curves where the chosen covariate is modified as \dQuote{low} and \dQuote{high}.
 #' The default is \code{p = c(0.25, 0.75)} to show the 25th and 75th quantiles.
 #' @param covariate_fix Optional values to fix the covariates at that are chosen in the final model. When
@@ -1148,7 +1148,7 @@ plot_effects <- function(obj,
 #' on the x-axis. If \code{log_scale_x = FALSE}, then the raw values of the \eqn{\epsilon}-telescope are plotted.
 #' @param log_scale_x_pretty Default is \code{log_scale_x_pretty = TRUE}, where the x-axis labels are \dQuote{pretty}.
 #' \code{epsilon_1} and \code{epsilon_T} must be a number to the power of 10 for this to apply.
-#' @param facet_scales Default is \code{facet_scales = "fixed"}. This is supplied to \code{\link{facet_wrap}}.
+#' @param facet_scales Default is \code{facet_scales = "fixed"}. This is supplied to \code{\link[ggplot2]{facet_wrap}}.
 #'
 #' @return A plot of the standardized coefficient values through the \eqn{\epsilon}-telescope.
 #'
