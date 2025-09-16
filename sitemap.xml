@@ -1,57 +1,21 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://meadhbh-oneill.github.io/smoothic/404.html</loc>
-  </url>
-  <url>
-    <loc>https://meadhbh-oneill.github.io/smoothic/articles/index.html</loc>
-  </url>
-  <url>
-    <loc>https://meadhbh-oneill.github.io/smoothic/articles/sgnd-boston.html</loc>
-  </url>
-  <url>
-    <loc>https://meadhbh-oneill.github.io/smoothic/authors.html</loc>
-  </url>
-  <url>
-    <loc>https://meadhbh-oneill.github.io/smoothic/index.html</loc>
-  </url>
-  <url>
-    <loc>https://meadhbh-oneill.github.io/smoothic/news/index.html</loc>
-  </url>
-  <url>
-    <loc>https://meadhbh-oneill.github.io/smoothic/reference/bostonhouseprice.html</loc>
-  </url>
-  <url>
-    <loc>https://meadhbh-oneill.github.io/smoothic/reference/bostonhouseprice2.html</loc>
-  </url>
-  <url>
-    <loc>https://meadhbh-oneill.github.io/smoothic/reference/citycrime.html</loc>
-  </url>
-  <url>
-    <loc>https://meadhbh-oneill.github.io/smoothic/reference/diabetes.html</loc>
-  </url>
-  <url>
-    <loc>https://meadhbh-oneill.github.io/smoothic/reference/index.html</loc>
-  </url>
-  <url>
-    <loc>https://meadhbh-oneill.github.io/smoothic/reference/pcancer.html</loc>
-  </url>
-  <url>
-    <loc>https://meadhbh-oneill.github.io/smoothic/reference/plot_effects.html</loc>
-  </url>
-  <url>
-    <loc>https://meadhbh-oneill.github.io/smoothic/reference/plot_paths.html</loc>
-  </url>
-  <url>
-    <loc>https://meadhbh-oneill.github.io/smoothic/reference/predict.smoothic.html</loc>
-  </url>
-  <url>
-    <loc>https://meadhbh-oneill.github.io/smoothic/reference/smoothic.html</loc>
-  </url>
-  <url>
-    <loc>https://meadhbh-oneill.github.io/smoothic/reference/sniffer.html</loc>
-  </url>
-  <url>
-    <loc>https://meadhbh-oneill.github.io/smoothic/reference/summary.smoothic.html</loc>
-  </url>
+<urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
+<url><loc>https://meadhbh-oneill.github.io/smoothic/404.html</loc></url>
+<url><loc>https://meadhbh-oneill.github.io/smoothic/articles/index.html</loc></url>
+<url><loc>https://meadhbh-oneill.github.io/smoothic/articles/sgnd-boston.html</loc></url>
+<url><loc>https://meadhbh-oneill.github.io/smoothic/authors.html</loc></url>
+<url><loc>https://meadhbh-oneill.github.io/smoothic/index.html</loc></url>
+<url><loc>https://meadhbh-oneill.github.io/smoothic/news/index.html</loc></url>
+<url><loc>https://meadhbh-oneill.github.io/smoothic/reference/bostonhouseprice.html</loc></url>
+<url><loc>https://meadhbh-oneill.github.io/smoothic/reference/bostonhouseprice2.html</loc></url>
+<url><loc>https://meadhbh-oneill.github.io/smoothic/reference/citycrime.html</loc></url>
+<url><loc>https://meadhbh-oneill.github.io/smoothic/reference/diabetes.html</loc></url>
+<url><loc>https://meadhbh-oneill.github.io/smoothic/reference/index.html</loc></url>
+<url><loc>https://meadhbh-oneill.github.io/smoothic/reference/pcancer.html</loc></url>
+<url><loc>https://meadhbh-oneill.github.io/smoothic/reference/plot_effects.html</loc></url>
+<url><loc>https://meadhbh-oneill.github.io/smoothic/reference/plot_paths.html</loc></url>
+<url><loc>https://meadhbh-oneill.github.io/smoothic/reference/predict.smoothic.html</loc></url>
+<url><loc>https://meadhbh-oneill.github.io/smoothic/reference/smoothic.html</loc></url>
+<url><loc>https://meadhbh-oneill.github.io/smoothic/reference/sniffer.html</loc></url>
+<url><loc>https://meadhbh-oneill.github.io/smoothic/reference/summary.smoothic.html</loc></url>
 </urlset>
+
