@@ -1,6 +1,7 @@
 # smoothic 1.2.1
-* minor update to fix link issues
+* fix Rd \link{} cross-references for new CRAN HTML docs
 
+* remove custom domain from description
 
 # smoothic 1.2.0
 * minor update to `plot_effects()` function to increase flexibility of plotting different quantile
